@@ -1,28 +1,28 @@
-import Vue from "vue";
-import { isString, BooleanLike, functionalComponent } from "../../utils";
+import Vue from 'vue'
+import { isString, BooleanLike, functionalComponent } from '../../utils'
 
 export interface BNavbarNavConfig {
-    tag: string;
-    type: string;
-    variant: string;
-    toggleable: BooleanLike;
-    fixed: string;
-    sticky: BooleanLike;
-    print: BooleanLike;
+  tag: string
+  type: string
+  variant: string
+  toggleable: BooleanLike
+  fixed: string
+  sticky: BooleanLike
+  print: BooleanLike
 }
 
 const props = {
-  tag:{
-    type:String,
-    default:"nav"
+  tag: {
+    type: String,
+    default: 'nav'
   },
   type: {
     type: String,
-    default: "light"
+    default: 'light'
   },
   variant: {
     type: String,
-    default: "dark"
+    default: 'dark'
   },
   toggleable: {
     type: [Boolean, String],
@@ -39,13 +39,13 @@ const props = {
     type: Boolean,
     default: false
   }
-};
+}
 
 export const BNavbarNav = functionalComponent<BNavbarNavConfig>({
   props: props,
-  methods:{
-    Test:()=>'123'
+  methods: {
+    Test: () => '123'
   }
-});
+})
 
-export default BNavbarNav;
+export default BNavbarNav

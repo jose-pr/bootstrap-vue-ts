@@ -1,21 +1,32 @@
 import { setConfig } from '../bv-config'
 import { hasWindowSupport } from '../utils/env'
-import { VueConstructor, DirectiveOptions, DirectiveFunction, PluginObject, PluginFunction, checkMultipleVue } from '../utils/vue';
-import { Dict } from '../utils/types';
-import { BvComponent } from './BvComponent';
+import {
+  VueConstructor,
+  DirectiveOptions,
+  DirectiveFunction,
+  PluginObject,
+  PluginFunction,
+  checkMultipleVue
+} from '../utils/vue'
+import { Dict } from '../utils/types'
+import { BvComponent } from './BvComponent'
 
 export interface BvPlugin extends PluginObject<BvConfigOptions> {
   install: PluginFunction<BvConfigOptions>
 }
 
-type factoryOptions = { components?: Dict<BvComponent>, directives?: Dict<DirectiveOptions | DirectiveFunction>, plugins?: Dict<BvPlugin> }
+interface factoryOptions {
+  components?: Dict<BvComponent>;
+  directives?: Dict<DirectiveOptions | DirectiveFunction>;
+  plugins?: Dict<BvPlugin>;
+}
 /**
  * Plugin install factory function.
  * @param {object} { components, directives }
  * @returns {function} plugin install function
  */
-export const installFactory = ({ components, directives, plugins }:factoryOptions) => {
-  const install = (Vue:VueConstructor, config = {}) => {
+export const installFactory = ({ components, directives, plugins }: factoryOptions) => {
+  const install = (Vue: VueConstructor, config = {}) => {
     if (install.installed) {
       /* istanbul ignore next */
       return
@@ -38,7 +49,7 @@ export const installFactory = ({ components, directives, plugins }:factoryOption
  * @param {object} { components, directives, plugins }
  * @returns {object} plugin install object
  */
-export const pluginFactory = (opts:factoryOptions = {}, extend = {}):BvPlugin => {
+export const pluginFactory = (opts: factoryOptions = {}, extend = {}): BvPlugin => {
   return {
     ...extend,
     install: installFactory(opts)
@@ -88,7 +99,11 @@ export const registerComponents = (Vue: VueConstructor, components: Dict<BvCompo
  * @param {string} Directive name
  * @param {object} Directive definition
  */
-export const registerDirective = (Vue: VueConstructor, name: string, def: DirectiveOptions | DirectiveFunction) => {
+export const registerDirective = (
+  Vue: VueConstructor,
+  name: string,
+  def: DirectiveOptions | DirectiveFunction
+) => {
   if (Vue && name && def) {
     // Ensure that any leading V is removed from the
     // name, as Vue adds it automatically
@@ -101,7 +116,10 @@ export const registerDirective = (Vue: VueConstructor, name: string, def: Direct
  * @param {object} Vue
  * @param {object} Object of directive definitions
  */
-export const registerDirectives = (Vue: VueConstructor, directives: Dict<DirectiveOptions | DirectiveFunction> = {}) => {
+export const registerDirectives = (
+  Vue: VueConstructor,
+  directives: Dict<DirectiveOptions | DirectiveFunction> = {}
+) => {
   for (let directive in directives) {
     registerDirective(Vue, directive, directives[directive])
   }
@@ -114,6 +132,6 @@ export const registerDirectives = (Vue: VueConstructor, directives: Dict<Directi
 export const vueUse = (VuePlugin: BvPlugin) => {
   /* istanbul ignore next */
   if (hasWindowSupport && (window as any).Vue) {
-    (window as any).Vue.use(VuePlugin)
+    ;(window as any).Vue.use(VuePlugin)
   }
 }

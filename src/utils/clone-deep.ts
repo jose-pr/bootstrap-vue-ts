@@ -1,8 +1,7 @@
-
 import { keys, isPlainObject } from './object'
-import { isArray } from './array';
+import { isArray } from './array'
 
-export const cloneDeep = <T>(obj:T, defaultValue:T = obj):T => {
+export const cloneDeep = <T>(obj: T, defaultValue: T = obj): T => {
   if (isArray(obj)) {
     return obj.reduce((result, val) => [...result, cloneDeep(val, val)], [])
   }

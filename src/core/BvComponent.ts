@@ -1,7 +1,7 @@
-import { Primitive, Dict } from '../utils';
+import { Primitive, Dict } from '../utils'
 
-export type BvComponentConfig = Dict<Primitive|Dict<Primitive|null|undefined>|Array<Primitive>|null|undefined>
+export type BvComponentConfig = Dict<
+Primitive | Dict<Primitive | null | undefined> | Primitive[] | null | undefined
+>
 
-export interface BvComponent{
-    
-}
+export interface BvComponent {}

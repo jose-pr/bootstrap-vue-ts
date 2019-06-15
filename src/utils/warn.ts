@@ -4,7 +4,7 @@ import { isBrowser, hasPromiseSupport, hasMutationObserverSupport, getNoWarn } f
  * Log a warning message to the console with BootstrapVue formatting
  * @param {string} message
  */
-export const warn = (message:string) => /* istanbul ignore next */ {
+export const warn = (message: string) => /* istanbul ignore next */ {
   if (!getNoWarn()) {
     console.warn(`[BootstrapVue warn]: ${message}`)
   }
@@ -15,7 +15,7 @@ export const warn = (message:string) => /* istanbul ignore next */ {
  * @param {string} source
  * @returns {boolean} warned
  */
-export const warnNotClient = (source:string) => {
+export const warnNotClient = (source: string) => {
   /* istanbul ignore else */
   if (isBrowser) {
     return false
@@ -30,7 +30,7 @@ export const warnNotClient = (source:string) => {
  * @param {string} source
  * @returns {boolean} warned
  */
-export const warnNoPromiseSupport = (source:string) => {
+export const warnNoPromiseSupport = (source: string) => {
   /* istanbul ignore else */
   if (hasPromiseSupport) {
     return false
@@ -45,7 +45,7 @@ export const warnNoPromiseSupport = (source:string) => {
  * @param {string} source
  * @returns {boolean} warned
  */
-export const warnNoMutationObserverSupport = (source:string) => {
+export const warnNoMutationObserverSupport = (source: string) => {
   /* istanbul ignore else */
   if (hasMutationObserverSupport) {
     return false

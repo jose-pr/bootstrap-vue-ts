@@ -1,13 +1,13 @@
 import { keys } from './object'
 import { eventOn, eventOff } from './dom'
-import { VNode, DirectiveBinding } from './vue';
-import { Dict } from './types';
+import { VNode, DirectiveBinding } from './vue'
+import { Dict } from './types'
 
-const allListenTypes:Dict<boolean> = { hover: true, click: true, focus: true }
+const allListenTypes: Dict<boolean> = { hover: true, click: true, focus: true }
 
 const BVBoundListeners = '__BV_boundEventListeners__'
 
-const getTargets = (binding:DirectiveBinding) => {
+const getTargets = (binding: DirectiveBinding) => {
   const targets = keys(binding.modifiers || {}).filter(t => !allListenTypes[t])
 
   if (binding.value) {
@@ -17,7 +17,12 @@ const getTargets = (binding:DirectiveBinding) => {
   return targets
 }
 
-const bindTargets = (vnode:VNode, binding:DirectiveBinding, listenTypes:Dict<boolean>, fn:(target:{targets:string[],vnode:VNode})=>void) => {
+const bindTargets = (
+  vnode: VNode,
+  binding: DirectiveBinding,
+  listenTypes: Dict<boolean>,
+  fn: (target: { targets: string[]; vnode: VNode }) => void
+) => {
   const targets = getTargets(binding)
 
   const listener = () => {
@@ -26,7 +31,7 @@ const bindTargets = (vnode:VNode, binding:DirectiveBinding, listenTypes:Dict<boo
 
   keys(allListenTypes).forEach(type => {
     if (listenTypes[type] || binding.modifiers[type]) {
-      let el = vnode.elm as Element&Dict<Dict<(()=>void)[]>>;
+      let el = vnode.elm as Element & Dict<Dict<(() => void)[]>>
       eventOn(el, type, listener)
       const boundListeners = el[BVBoundListeners] || {}
       boundListeners[type] = boundListeners[type] || []
@@ -39,11 +44,11 @@ const bindTargets = (vnode:VNode, binding:DirectiveBinding, listenTypes:Dict<boo
   return targets
 }
 
-const unbindTargets = (vnode:VNode, binding:DirectiveBinding, listenTypes:Dict<boolean>) => {
+const unbindTargets = (vnode: VNode, binding: DirectiveBinding, listenTypes: Dict<boolean>) => {
   keys(allListenTypes).forEach(type => {
     if (listenTypes[type] || binding.modifiers[type]) {
-      let el = vnode.elm as Element&Dict<Dict<(()=>void)[]>>
-      const boundListeners =el[BVBoundListeners] && el[BVBoundListeners][type]
+      let el = vnode.elm as Element & Dict<Dict<(() => void)[]>>
+      const boundListeners = el[BVBoundListeners] && el[BVBoundListeners][type]
       if (boundListeners) {
         boundListeners.forEach(listener => eventOff(el, type, listener))
         delete el[BVBoundListeners][type]

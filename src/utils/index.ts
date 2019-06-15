@@ -1,5 +1,5 @@
 //
-//Export all utils
+// Export all utils
 //
 export * from './array'
 export * from './clone-deep'

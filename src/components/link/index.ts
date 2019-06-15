@@ -1,20 +1,20 @@
 import { BvPlugin, installFactory } from '../../core/BvPlugin'
 //
-//Import all components
+// Import all components
 //
 import * as BLinkComponent from './link'
 
 export const LinkComponents = {
-    BLink:BLinkComponent.default,
+  BLink: BLinkComponent.default
 }
 //
-//Plugin
+// Plugin
 //
-const LinkPlugin:BvPlugin = {
-    install: installFactory({components:LinkComponents})
+const LinkPlugin: BvPlugin = {
+  install: installFactory({ components: LinkComponents })
 }
 //
-//Exports
+// Exports
 //
 export default LinkPlugin
 export { LinkPlugin }

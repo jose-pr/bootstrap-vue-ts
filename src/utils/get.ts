@@ -1,5 +1,5 @@
-import { isArray } from './array';
-import { isObject } from './object';
+import { isArray } from './array'
+import { isObject } from './object'
 
 /**
  * Get property defined by dot/array notation in string.
@@ -11,7 +11,7 @@ import { isObject } from './object';
  * @param {*} defaultValue (optional)
  * @return {*}
  */
-const get = <T> (obj:any, path:string, defaultValue:T|null = null) => {
+const get = <T>(obj: any, path: string, defaultValue: T | null = null) => {
   // Handle array of path values
   path = isArray(path) ? path.join('.') : path
 
@@ -37,7 +37,9 @@ const get = <T> (obj:any, path:string, defaultValue:T|null = null) => {
   }
 
   // Traverse path in object to find result
-  return steps.every(step => isObject(obj) && obj.hasOwnProperty(step) && (obj = (obj as any)[step]) != null)
+  return steps.every(
+    step => isObject(obj) && obj.hasOwnProperty(step) && (obj = (obj as any)[step]) != null
+  )
     ? obj
     : defaultValue
 }

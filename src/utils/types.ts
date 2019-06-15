@@ -4,5 +4,5 @@ export type BooleanLike = string | boolean | number
 export type NumberLike = string | number
 
 export interface Dict<T> {
-    [key: string]: T
+  [key: string]: T
 }

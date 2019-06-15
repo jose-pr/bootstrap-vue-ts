@@ -1,27 +1,27 @@
-import { BooleanLike, functionalComponent, PropsDef } from "../../utils";
+import { BooleanLike, functionalComponent, PropsDef } from '../../utils'
 
 export interface BNavbarConfig {
-    tag?: string|null;
-    type?: string|null;
-    variant?: string|null;
-    toggleable?: BooleanLike;
-    fixed?: string;
-    sticky?: BooleanLike;
-    print?: BooleanLike;
+  tag?: string | null
+  type?: string | null
+  variant?: string | null
+  toggleable?: BooleanLike
+  fixed?: string
+  sticky?: BooleanLike
+  print?: BooleanLike
 }
 
-const props:PropsDef<BNavbarConfig> = {
-  tag:{
-    type:String,
-    default:"nav"
+const props: PropsDef<BNavbarConfig> = {
+  tag: {
+    type: String,
+    default: 'nav'
   },
   type: {
     type: String,
-    default: "light"
+    default: 'light'
   },
   variant: {
     type: String,
-    default: "dark"
+    default: 'dark'
   },
   toggleable: {
     type: [Boolean, String],
@@ -38,13 +38,13 @@ const props:PropsDef<BNavbarConfig> = {
     type: Boolean,
     default: false
   }
-};
+}
 
 export const BNavbar = functionalComponent<BNavbarConfig>({
   props: props,
-  methods:{
-    Test:()=>'123'
+  methods: {
+    Test: () => '123'
   }
-});
+})
 
-export default BNavbar;
+export default BNavbar

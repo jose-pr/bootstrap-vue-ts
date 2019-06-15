@@ -1,9 +1,18 @@
 module.exports = {
-  extends: ['standard', 'plugin:vue/recommended', 'plugin:prettier/recommended',"plugin:vue/essential", "@vue/prettier", "@vue/typescript"],
-  plugins: ['jest', 'markdown', 'node', 'promise'],
+  extends: [
+    'standard',
+    'plugin:vue/recommended',    
+   // '@vue/typescript',
+    'plugin:@typescript-eslint/recommended',
+    'prettier/@typescript-eslint',
+    'plugin:prettier/recommended',
+    'plugin:import/typescript'
+  ],
+  plugins: ['@typescript-eslint', 'jest', 'markdown', 'node', 'promise'],
+  parser: "vue-eslint-parser",
   parserOptions: {
-    parser: "@typescript-eslint/parser",
-//    sourceType: 'module'
+    parser: '@typescript-eslint/parser', //parser: "@typescript-eslint/parser",
+    sourceType: 'module'
   },
   env: {
     browser: true,
@@ -14,6 +23,7 @@ module.exports = {
     Vue: true
   },
   rules: {
+    'spaced-comment': 'off', // needed to ignore `/*#__PURE__*/` comments
     'vue/html-self-closing': [
       'error',
       {
@@ -33,4 +43,3 @@ module.exports = {
     'vue/singleline-html-element-content-newline': 'off'
   }
 }
-

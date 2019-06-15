@@ -2,7 +2,20 @@ import Vue from 'Vue'
 import { mergeData } from 'vue-functional-data-merge'
 import { PropOptions, CreateElement } from 'vue'
 import { BvComponentConfig } from '../../core/BvComponent'
-import { PropsDef, Dict, keys, arrayIncludes, concat, isRouterLink, isFunction, computeTag, computeRel, computeHref, isVueElement, functionalComponent } from '../../utils';
+import {
+  PropsDef,
+  Dict,
+  keys,
+  arrayIncludes,
+  concat,
+  isRouterLink,
+  isFunction,
+  computeTag,
+  computeRel,
+  computeHref,
+  isVueElement,
+  functionalComponent
+} from '../../utils'
 
 /**
  * The Link component is used in many other BV components.
@@ -143,10 +156,10 @@ const clickHandlerFactory = ({
   disabled: boolean
   tag: string
   href: string | null
-  suppliedHandler: ((...args:any)=>void)[]
+  suppliedHandler: ((...args: any) => void)[]
   parent: Vue
 }) => {
-  return function onClick(evt:  Event) {  
+  return function onClick(evt: Event) {
     if (disabled && evt instanceof Event) {
       // Stop event from bubbling up.
       evt.stopPropagation()
@@ -186,7 +199,7 @@ export default functionalComponent<BLinkConfig>({
     const rel = computeRel(props)
     const href = computeHref(props, tag)
     const eventType = isRouterLink(tag) ? 'nativeOn' : 'on'
-    const suppliedHandler = (data[eventType] || {}).click as ((...args:any)=>void)[]
+    const suppliedHandler = (data[eventType] || {}).click as ((...args: any) => void)[]
     const handlers = {
       click: clickHandlerFactory({ tag, href, disabled: props.disabled!, suppliedHandler, parent })
     }

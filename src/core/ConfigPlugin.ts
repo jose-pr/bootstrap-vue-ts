@@ -3,6 +3,6 @@
 //
 import { pluginFactory } from './BvPlugin'
 
-const BVConfigPlugin = /*#__PURE__*/ pluginFactory()
+const BVConfigPlugin = /* #__PURE__ */ pluginFactory()
 
 export default BVConfigPlugin

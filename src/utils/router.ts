@@ -1,8 +1,8 @@
 import toString from './to-string'
 import { isNull, isString, isUndefined } from './inspect'
 import { keys, isPlainObject } from './object'
-import { Dict } from './types';
-import { isArray } from './array';
+import { Dict } from './types'
+import { isArray } from './array'
 
 const ANCHOR_TAG = 'a'
 
@@ -10,12 +10,12 @@ const ANCHOR_TAG = 'a'
 const commaRE = /%2C/g
 const encodeReserveRE = /[!'()*]/g
 // Method to replace reserved chars
-const encodeReserveReplacer = (c:string) => '%' + c.charCodeAt(0).toString(16)
+const encodeReserveReplacer = (c: string) => '%' + c.charCodeAt(0).toString(16)
 
 // Fixed encodeURIComponent which is more conformant to RFC3986:
 // - escapes [!'()*]
 // - preserve commas
-const encode = (str:any) =>
+const encode = (str: any) =>
   encodeURIComponent(toString(str))
     .replace(encodeReserveRE, encodeReserveReplacer)
     .replace(commaRE, ',')
@@ -24,7 +24,7 @@ const decode = decodeURIComponent
 
 // Stringifies an object of query parameters
 // See: https://github.com/vuejs/vue-router/blob/dev/src/util/query.js
-export const stringifyQueryObj = (obj:any) => {
+export const stringifyQueryObj = (obj: any) => {
   if (!isPlainObject(obj)) {
     return ''
   }
@@ -59,8 +59,8 @@ export const stringifyQueryObj = (obj:any) => {
   return query ? `?${query}` : ''
 }
 
-export const parseQuery = (query:any) => {
-  const parsed:Dict<string|null|(string|null)[]> = {}
+export const parseQuery = (query: any) => {
+  const parsed: Dict<string | null | (string | null)[]> = {}
   query = toString(query)
     .trim()
     .replace(/^(\?|#|&)/, '')
@@ -69,7 +69,7 @@ export const parseQuery = (query:any) => {
     return parsed
   }
 
-  (query as string).split('&').forEach(param => {
+  ;(query as string).split('&').forEach(param => {
     const parts = param.replace(/\+/g, ' ').split('=')
     const key = decode(parts.shift()!)
     const val = parts.length > 0 ? decode(parts.join('=')) : null
@@ -77,23 +77,26 @@ export const parseQuery = (query:any) => {
     if (isUndefined(parsed[key])) {
       parsed[key] = val
     } else if (isArray(parsed[key])) {
-      (parsed[key] as (string|null)[]).push(val)
+      ;(parsed[key] as (string | null)[]).push(val)
     } else {
-      (parsed[key] as (string|null)[])= [parsed[key] as string, val]
+      ;(parsed[key] as (string | null)[]) = [parsed[key] as string, val]
     }
   })
 
   return parsed
 }
 
-export const isRouterLink = (tag:string) => tag !== ANCHOR_TAG
+export const isRouterLink = (tag: string) => tag !== ANCHOR_TAG
 interface routerPathObj {
-    path?:string,
-    query?:string,
-    hash?:string
+  path?: string
+  query?: string
+  hash?: string
 }
-type routerPath = routerPathObj | string;
-export const computeTag = ({ to, disabled }:{to?:routerPath,disabled?:boolean} = {}, thisOrParent:any) => {
+type routerPath = routerPathObj | string
+export const computeTag = (
+  { to, disabled }: { to?: routerPath; disabled?: boolean } = {},
+  thisOrParent: any
+) => {
   return thisOrParent.$router && to && !disabled
     ? thisOrParent.$nuxt
       ? 'nuxt-link'
@@ -101,7 +104,7 @@ export const computeTag = ({ to, disabled }:{to?:routerPath,disabled?:boolean} =
     : ANCHOR_TAG
 }
 
-export const computeRel = ({ target, rel }:{target?:string,rel?:string} = {}) => {
+export const computeRel = ({ target, rel }: { target?: string; rel?: string } = {}) => {
   if (target === '_blank' && isNull(rel)) {
     return 'noopener'
   }
@@ -109,11 +112,11 @@ export const computeRel = ({ target, rel }:{target?:string,rel?:string} = {}) =>
 }
 
 export const computeHref = (
-  { href, to }:{href?:string,to?:routerPath} = {},
+  { href, to }: { href?: string; to?: routerPath } = {},
   tag = ANCHOR_TAG,
   fallback = '#',
   toFallback = '/'
-):string|null => {
+): string | null => {
   // We've already checked the $router in computeTag(), so isRouterLink() indicates a live router.
   // When deferring to Vue Router's router-link, don't use the href attribute at all.
   // We return null, and then remove href from the attributes passed to router-link
@@ -130,10 +133,10 @@ export const computeHref = (
   if (to) {
     // Fallback to `to` prop (if `to` is a string)
     if (isString(to)) {
-      return to as string || toFallback
+      return (to as string) || toFallback
     }
     // Fallback to `to.path + to.query + to.hash` prop (if `to` is an object)
-    let _to = to as routerPathObj;
+    let _to = to as routerPathObj
     if (isPlainObject(to) && (_to.path || _to.query || _to.hash)) {
       const path = toString(_to.path)
       const query = stringifyQueryObj(_to.query)

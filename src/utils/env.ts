@@ -4,8 +4,8 @@
 
 // --- Constants ---
 
-declare const WebKitMutationObserver:MutationObserver
-declare const MozMutationObserver:MutationObserver
+declare const WebKitMutationObserver: MutationObserver
+declare const MozMutationObserver: MutationObserver
 
 export const hasWindowSupport = typeof window !== 'undefined'
 export const hasDocumentSupport = typeof document !== 'undefined'
@@ -36,7 +36,7 @@ export const hasPassiveEventSupport = (() => {
           /* istanbul ignore next: will never be called in JSDOM */
           passiveEventSupported = true
           return undefined
-        } 
+        }
       } as any
       window.addEventListener('test', options, options)
       window.removeEventListener('test', options, options)
@@ -47,7 +47,6 @@ export const hasPassiveEventSupport = (() => {
   }
   return passiveEventSupported
 })()
-
 
 export const hasTouchSupport =
   isBrowser && ('ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0)
@@ -65,8 +64,8 @@ export const hasIntersectionObserverSupport =
   'intersectionRatio' in (window as any).IntersectionObserverEntry.prototype
 
 // --- Getters ---
-declare const process:any
-export const getEnv = (key:string, fallback = null) => {
+declare const process: any
+export const getEnv = (key: string, fallback = null) => {
   const env = typeof process !== 'undefined' && process ? process.env || {} : {}
   if (!key) {
     /* istanbul ignore next */

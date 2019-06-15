@@ -1,8 +1,8 @@
-//@ts-ignore
+// @ts-ignore
 import assignPolyfill from 'core-js/features/object/assign'
-//@ts-ignore
+// @ts-ignore
 import isPolyfill from 'core-js/features/object/is'
-import { Dict, Primitive } from './types';
+import { Dict, Primitive } from './types'
 
 // --- Static ---
 
@@ -25,29 +25,34 @@ export const is = Object.is || isPolyfill
  * is a JSON-compliant type.
  * Note object could be a complex type like array, date, etc.
  */
-export const isObject =  (obj:any): obj is Dict<any> => obj !== null && typeof obj === 'object'
+export const isObject = (obj: any): obj is Dict<any> => obj !== null && typeof obj === 'object'
 
 /**
  * Strict object type check. Only returns true
  * for plain JavaScript objects.
  */
-export const isPlainObject = (obj:any):obj is Dict<any> => Object.prototype.toString.call(obj) === '[object Object]'
+export const isPlainObject = (obj: any): obj is Dict<any> =>
+  Object.prototype.toString.call(obj) === '[object Object]'
 
-//type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
+// type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 // @link https://gist.github.com/bisubus/2da8af7e801ffd813fab7ac221aa7afc
-export const omit = <I extends Dict<any>,R>(obj:I, props:string[]):Omit<I,keyof R> =>
+export const omit = <I extends Dict<any>, R>(obj: I, props: string[]): Omit<I, keyof R> =>
   keys(obj)
     .filter(key => props.indexOf(key) === -1)
     .reduce((result, key) => ({ ...result, [key]: obj[key] }), {}) as any
 
-export const readonlyDescriptor = ():PropertyDescriptor => ({ enumerable: true, configurable: false, writable: false })
+export const readonlyDescriptor = (): PropertyDescriptor => ({
+  enumerable: true,
+  configurable: false,
+  writable: false
+})
 
 /**
  * Deep-freezes and object, making it immutable / read-only.
  * Returns the same object passed-in, but frozen.
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze
  */
-export const deepFreeze = <T>(obj:T):Readonly<T> => {
+export const deepFreeze = <T>(obj: T): Readonly<T> => {
   let o = obj as Dict<any>
   // Retrieve the property names defined on object
   const props = getOwnPropertyNames(obj)
@@ -61,4 +66,5 @@ export const deepFreeze = <T>(obj:T):Readonly<T> => {
 
 // --- "Instance" ---
 
-export const hasOwnProperty = (obj:any, prop:string) => Object.prototype.hasOwnProperty.call(obj, prop)
+export const hasOwnProperty = (obj: any, prop: string) =>
+  Object.prototype.hasOwnProperty.call(obj, prop)
