@@ -1,4 +1,4 @@
-import { BvPlugin, installFactory } from '../../common/BvPlugin'
+import { BvPlugin, installFactory } from '../../core/BvPlugin'
 //
 //Import all components
 //

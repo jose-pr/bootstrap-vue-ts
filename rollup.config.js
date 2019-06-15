@@ -1,26 +1,25 @@
 import commonjs from 'rollup-plugin-commonjs'
-import vue from 'rollup-plugin-vue'
 import typescript from '@wessberg/rollup-plugin-ts'
-import postcss from 'rollup-plugin-postcss';
-import inputs from './rollup.inputs'
+import nodeResolver from 'rollup-plugin-node-resolve'
+
+
 
 export default {    
-  input:inputs,
+  input:'src/index.browser.ts',
   output: [
   {
-    dir:'dist/esm',
-    format:'esm'
+    file:'dist/boostrap-vue.js',
+    format:'umd',
+    name:'BootstrapVue',
+    globals:{
+      'vue':'Vue'
+    }
   }
 ],
   external: ['vue','vue-property-decorator','vue-class-component'],
   plugins: [
     commonjs(),
-    vue({
-        css: false
-     }),
-     typescript(),
-    postcss({
-        extract:true
-    })
+    nodeResolver(),
+    typescript()    
   ]
 }

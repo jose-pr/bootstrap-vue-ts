@@ -1,4 +1,4 @@
-import { installFactory } from '../common/BvPlugin'
+import { installFactory } from '../core/BvPlugin'
 import VBModalPlugin, {  } from './modal'
 export const directivePlugins = {
     VBModalPlugin,

@@ -54,7 +54,7 @@ async function createIndexForComponentPlugin(plugin: plugin) {
         let stats = await getStats(module.fullpath)
         if (stats.isFile() && c != 'index.ts' && c.endsWith(".ts")) plugin.components.push(module);
     }
-    index.ImportFromModule('../../common/BvPlugin',['BvPlugin','installFactory'])
+    index.ImportFromModule('../../core/BvPlugin',['BvPlugin','installFactory'])
     index.Comment("Import all components");
     plugin.components.forEach(c => index.ImportAllFromModule({ name: `${c.name}Component`, path: `./${c.filename}` }))
     index.Append('')
@@ -118,7 +118,7 @@ async function ProcessComponentPlugins() {
             await createIndexForComponentPlugin(module)       
         }           
     }
-    index.ImportFromModule(`../common/BvPlugin`,`installFactory`)
+    index.ImportFromModule(`../core/BvPlugin`,`installFactory`)
     plugins.forEach(p=> index.ImportFromModule(`./${p.filename}`,p.components.map(c=>`${c.name}Config`),p.name))
     index.Indent(
         'export interface ComponentsConfig {',
@@ -161,7 +161,7 @@ async function ProcessDirectivePlugins() {
             await createIndexForDirectivePlugin(module)       
         }           
     }
-    index.ImportFromModule(`../common/BvPlugin`,`installFactory`)
+    index.ImportFromModule(`../core/BvPlugin`,`installFactory`)
     plugins.forEach(p=> index.ImportFromModule(`./${p.filename}`,[],p.name))
 
     index.Indent(
@@ -186,7 +186,7 @@ async function createIndexForDirectivePlugin(plugin: plugin) {
         let stats = await getStats(module.fullpath)
         if (stats.isFile() && c != 'index.ts' && c.endsWith(".ts")) plugin.components.push(module);
     }
-    index.ImportFromModule('../../common/BvPlugin',['BvPlugin','installFactory'])
+    index.ImportFromModule('../../core/BvPlugin',['BvPlugin','installFactory'])
     index.ImportFromModule('../../utils/vue',['DirectiveOptions','DirectiveFunction'])
     index.ImportFromModule('../../utils/types',['Dict'])
 
@@ -210,22 +210,6 @@ async function createIndexForDirectivePlugin(plugin: plugin) {
     await index.Write(getWritter(`${plugin.fullpath}/index.ts`))
     return;
 }
-/* import * as VBModalDirective from './modal'
-import { BvPlugin, installFactory } from '../../common/BvPlugin'
-import { DirectiveOptions, DirectiveFunction } from '../../utils/vue'
-import { Dict } from '../../utils/types';
-
-export const ModalDirectives:Dict<DirectiveOptions|DirectiveFunction> = {
-  VBModal:VBModalDirective.default,
-}
-
-const VBModalPlugin:BvPlugin = {
-  install: installFactory({directives:ModalDirectives})
-}
-
-// Plugin
-export default VBModalPlugin */
-
 
 async function ProcessUtils() {
     console.log('Process Utils')

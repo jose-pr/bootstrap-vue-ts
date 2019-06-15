@@ -1,7 +1,8 @@
 import toString from './to-string'
-import { isArray, isNull, isPlainObject, isString, isUndefined } from './inspect'
-import { keys } from './object'
+import { isNull, isString, isUndefined } from './inspect'
+import { keys, isPlainObject } from './object'
 import { Dict } from './types';
+import { isArray } from './array';
 
 const ANCHOR_TAG = 'a'
 

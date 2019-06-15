@@ -1,5 +1,6 @@
-import { isArray, isPlainObject } from './inspect'
-import { keys } from './object'
+
+import { keys, isPlainObject } from './object'
+import { isArray } from './array';
 
 export const cloneDeep = <T>(obj:T, defaultValue:T = obj):T => {
   if (isArray(obj)) {

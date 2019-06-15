@@ -1,4 +1,4 @@
-import { installFactory } from '../common/BvPlugin'
+import { installFactory } from '../core/BvPlugin'
 import LinkPlugin, { BLinkConfig } from './link'
 import NavbarPlugin, { BNavbarNavConfig, BNavbarConfig } from './navbar'
 export interface ComponentsConfig {

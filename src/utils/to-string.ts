@@ -1,4 +1,6 @@
-import { isArray, isNull, isPlainObject, isUndefined } from './inspect'
+import { isNull, isUndefined } from './inspect'
+import { isArray } from './array';
+import { isPlainObject } from './object';
 
 /**
  * Convert a value to a string that can be rendered.

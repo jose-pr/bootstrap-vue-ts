@@ -1,155 +1,120 @@
+import OurVue from './utils/vue'
+import cloneDeep from './utils/clone-deep'
+import get from './utils/get'
+import warn from './utils/warn'
+import { isString, isUndefined } from './utils/inspect'
+import { getOwnPropertyNames, hasOwnProperty, isPlainObject } from './utils/object'
+import DEFAULTS, { BV_CONFIG_PROP_NAME } from './defaults'
+import { Dict } from './utils/types';
+import { isArray } from './utils/array';
 
-import Vue, { VueConstructor } from './utils/vue'
-import { BvPlugin } from './common/BvPlugin'
-import { setConfig, Config, DEFAULTS } from './utils/config'
-import { BvComponent, BvComponentConfig } from './common/BvComponent';
-import { Component } from 'vue-property-decorator'
-import cloneDeep from './utils/clone-deep';
-import get from './utils/get';
-import { Dict, isObject, keys, isArray, isString, isUndefined, Primitive } from './utils';
-import warn from './utils/warn';
-import { ComponentsConfig } from './components';
+// --- Constants ---
 
 
-// Plugin Config Options
-export type BvConfigOptions = { breakpoints?:string[] } & ComponentsConfig & BvComponentConfig
 
-@Component({})
-export class BvConfig extends Vue implements BvComponent {
-    $_config:BvConfigOptions = {}
-    $_cachedBreakpoints:string[]|null = null  
-  
-    created(){
+// Config manager class
+export class BvConfig {
+
+    $_config:BvConfigOptions
+    $_cachedBreakpoints:string[]|null
+
+    constructor() {
+        // TODO: pre-populate with default config values (needs updated tests)
+        // this.$_config = cloneDeep(DEFAULTS)
         this.$_config = {}
         this.$_cachedBreakpoints = null
     }
 
-    getDefaults() {
-        // Returns a copy of the defaults
-        return cloneDeep(DEFAULTS)
-      }
-      getConfig() {
-        // Returns a copy of the user config
-        return cloneDeep(this.$_config)
-      }
-      resetConfig() {
-        // Clear the config. For testing purposes only
-        this.$_config = {}
-      }
-      getConfigValue(key:string) {
-        // First we try the user config, and if key not found we fall back to default value
-        // NOTE: If we deep clone DEFAULTS into config, then we can skip the fallback for get
-        return cloneDeep(get(this.$_config, key, get(DEFAULTS, key)))
-      }
-      getComponentConfig(cmpName:string, key?:string) {
-        // Return the particular config value for key for if specified,
-        // otherwise we return the full config
-        return key ? this.getConfigValue(`${cmpName}.${key}`) : this.getConfigValue(cmpName) || {}
-      }
-      getBreakpoints() {
-        // Convenience method for getting all breakpoint names
-        return this.getConfigValue('breakpoints') as string[]
-      }
-      getBreakpointsCached() {
-        // Convenience method for getting all breakpoint names
-        // Caches the results after first access
-        if (!this.$_cachedBreakpoints) {
-          this.$_cachedBreakpoints = this.getBreakpoints()
+    static get Defaults() /* istanbul ignore next */ {
+        return DEFAULTS
+    }
+
+    get defaults() /* istanbul ignore next */ {
+        return DEFAULTS
+    }
+
+    // Returns the defaults
+    getDefaults() /* istanbul ignore next */ {
+        return this.defaults
+    }
+
+    // Method to merge in user config parameters
+    setConfig(config:BvConfigOptions = {}) {
+        if (!isPlainObject(config)) {
+            /* istanbul ignore next */
+            return
         }
-        return cloneDeep(this.$_cachedBreakpoints)
-      }
-      getBreakpointsUp() {
-        // Convenience method for getting breakpoints with
-        // the smallest breakpoint set as ''
-        // Useful for components that create breakpoint specific props
-        const breakpoints = this.getBreakpoints()
-        breakpoints[0] = ''
-        return breakpoints
-      }
-      getBreakpointsUpCached() {
-        // Convenience method for getting breakpoints with
-        // the smallest breakpoint set as ''
-        // Useful for components that create breakpoint specific props
-        // Caches the results after first access
-        const breakpoints = this.getBreakpointsCached()
-        breakpoints[0] = ''
-        return breakpoints
-      }
-      getBreakpointsDown() {
-        // Convenience method for getting breakpoints with
-        // the largest breakpoint set as ''
-        // Useful for components that create breakpoint specific props
-        const breakpoints = this.getBreakpoints()
-        breakpoints[breakpoints.length - 1] = ''
-        return breakpoints
-      }
-      getBreakpointsDownCached() /* istanbul ignore next: we don't use this method anywhere, yet */ {
-        // Convenience method for getting breakpoints with
-        // the largest breakpoint set as ''
-        // Useful for components that create breakpoint specific props
-        // Caches the results after first access
-        const breakpoints = this.getBreakpointsCached()
-        breakpoints[breakpoints.length - 1] = ''
-        return breakpoints
-      }
-      setConfig(config:Dict<any> = {}) {
-        if (!isObject(config)) {
-          /* istanbul ignore next */
-          return
-        }
-        keys(config)
-          .filter(cmpName => config.hasOwnProperty(cmpName))
-          .forEach(cmpName => {
-            if (!DEFAULTS.hasOwnProperty(cmpName)) {
-              /* istanbul ignore next */
-              warn(`config: unknown config property "${cmpName}"`)
-              /* istanbul ignore next */
-              return
+        const configKeys = getOwnPropertyNames(config)
+        for (let cmpName of configKeys) {
+            /* istanbul ignore next */
+            if (!hasOwnProperty(DEFAULTS, cmpName)) {
+                warn(`config: unknown config property "${cmpName}"`)
+                return
             }
             const cmpConfig = config[cmpName]
             if (cmpName === 'breakpoints') {
-              // Special case for breakpoints
-              const breakpoints = config.breakpoints
-              if (
-                !isArray(breakpoints) ||
-                breakpoints.length < 2 ||
-                breakpoints.some(b => !isString(b) || b.length === 0)
-              ) {
-                /* istanbul ignore next */
-                warn('config: "breakpoints" must be an array of at least 2 breakpoint names')
-              } else {
-                this.$_config.breakpoints = cloneDeep(breakpoints)
-              }
-            } else if (isObject(cmpConfig)) {
-              keys(cmpConfig)
-                .filter(key => cmpConfig.hasOwnProperty(key))
-                .forEach(key => {
-                  if (!DEFAULTS[cmpName].hasOwnProperty(key)) {
-                    /* istanbul ignore next */
-                    warn(`config: unknown config property "${cmpName}.{$key}"`)
-                  } else {
-                    // If we pre-populate the config with defaults, we can skip this line
-                    this.$_config[cmpName] = this.$_config[cmpName] || {}
-                    if (!isUndefined(cmpConfig[key])) {
-                      (this.$_config[cmpName] as Dict<Primitive>)[key] = cloneDeep(cmpConfig[key])
+                // Special case for breakpoints
+                const breakpoints = config.breakpoints
+                /* istanbul ignore if */
+                if (
+                    !isArray(breakpoints) ||
+                    breakpoints.length < 2 ||
+                    breakpoints.some(b => !isString(b) || b.length === 0)
+                ) {
+                    warn('config: "breakpoints" must be an array of at least 2 breakpoint names')
+                } else {
+                    this.$_config.breakpoints = cloneDeep(breakpoints)
+                }
+            } else if (isPlainObject(cmpConfig)) {
+                // Component prop defaults
+                let config = cmpConfig as Dict<any>
+                const props = getOwnPropertyNames(cmpConfig)
+                for (let prop of props) {
+                    /* istanbul ignore if */
+                    if (!hasOwnProperty(DEFAULTS[cmpName], prop)) {
+                        warn(`config: unknown config property "${cmpName}.{$prop}"`)
+                    } else {
+                        // TODO: If we pre-populate the config with defaults, we can skip this line
+                        this.$_config[cmpName] = this.$_config[cmpName] || {}
+                        if (!isUndefined((cmpConfig as any)[prop])) {
+                            (this.$_config[cmpName] as any)[prop] = cloneDeep(config[prop])
+                        }
                     }
-                  }
-                })
+                }
             }
-          })
-      }
+        }
+    }
+
+    // Clear the config. For testing purposes only
+    resetConfig() {
+        this.$_config = {}
+    }
+
+    // Returns a deep copy of the user config
+    getConfig() {
+        return cloneDeep(this.$_config)
+    }
+
+    getConfigValue(key:string) {
+        // First we try the user config, and if key not found we fall back to default value
+        // NOTE: If we deep clone DEFAULTS into config, then we can skip the fallback for get
+        return cloneDeep(get(this.$_config, key, get(DEFAULTS, key)))
+    }
 }
 
+// Method for applying a global config
+export const setConfig = (config = {}, Vue = OurVue) => {
+    // Ensure we have a $bvConfig Object on the Vue prototype.
+    // We set on Vue and OurVue just in case consumer has not set an alias of `vue`.
+    Vue.prototype[BV_CONFIG_PROP_NAME] = OurVue.prototype[BV_CONFIG_PROP_NAME] =
+        Vue.prototype[BV_CONFIG_PROP_NAME] || OurVue.prototype[BV_CONFIG_PROP_NAME] || new BvConfig()
+    // Apply the config values
+    Vue.prototype[BV_CONFIG_PROP_NAME].setConfig(config)
+}
 
-//
-// Utility Plugin for setting the configuration
-//
-const BVConfigPlugin:BvPlugin = {
-  install(Vue:VueConstructor, config = {}) {
-    setConfig(config)
-  }
+// Method for resetting the user config. Exported for testing purposes only.
+export const resetConfig = () => {
+    if (OurVue.prototype[BV_CONFIG_PROP_NAME] && OurVue.prototype[BV_CONFIG_PROP_NAME].resetConfig) {
+        OurVue.prototype[BV_CONFIG_PROP_NAME].resetConfig()
+    }
 }
-export {
-    BVConfigPlugin
-}
-export default BVConfigPlugin

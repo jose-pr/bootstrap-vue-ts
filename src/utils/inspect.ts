@@ -4,7 +4,8 @@
 
 import { isArray } from './array'
 import { isObject, isPlainObject } from './object'
-import { Primitive, VueElement } from './types';
+import { Primitive } from './types';
+import { VueElement } from './vue';
 
 export const toType = (val:any) => typeof val
 
@@ -34,6 +35,3 @@ export const isPromise = (val:any): val is Promise<any> =>
   !isUndefined(val) && !isNull(val) && isFunction(val.then) && isFunction(val.catch)
 
 export const isVueElement = (val:any): val is VueElement => val.__vue__&& val instanceof HTMLElement
-
-// Extra convenience named re-exports
-export { isArray, isObject, isPlainObject }

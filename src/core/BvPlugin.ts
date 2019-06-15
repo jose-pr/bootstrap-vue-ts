@@ -1,54 +1,28 @@
-import warn from '../utils/warn'
-import { setConfig } from '../utils/config'
-import { hasWindowSupport, isJSDOM } from '../utils/env'
-import OurVue, { VueConstructor, DirectiveOptions, DirectiveFunction, PluginObject, PluginFunction } from '../utils/vue';
+import { setConfig } from '../bv-config'
+import { hasWindowSupport } from '../utils/env'
+import { VueConstructor, DirectiveOptions, DirectiveFunction, PluginObject, PluginFunction, checkMultipleVue } from '../utils/vue';
 import { Dict } from '../utils/types';
 import { BvComponent } from './BvComponent';
-import { BvConfigOptions } from '../bv-config';
-
 
 export interface BvPlugin extends PluginObject<BvConfigOptions> {
   install: PluginFunction<BvConfigOptions>
 }
 
-/**
- * Checks if there are multiple instances of Vue, and warns (once) about possible issues.
- * @param {object} Vue
- */
-export const checkMultipleVue = (() => {
-  let checkMultipleVueWarned = false
-
-  const MULTIPLE_VUE_WARNING = [
-    'Multiple instances of Vue detected!',
-    'You may need to set up an alias for Vue in your bundler config.',
-    'See: https://bootstrap-vue.js.org/docs#using-module-bundlers'
-  ].join('\n')
-
-  return (Vue: VueConstructor) => {
-    /* istanbul ignore next */
-    if (!checkMultipleVueWarned && OurVue !== Vue && !isJSDOM) {
-      warn(MULTIPLE_VUE_WARNING)
-    }
-    checkMultipleVueWarned = true
-  }
-})()
-
-
-
+type factoryOptions = { components?: Dict<BvComponent>, directives?: Dict<DirectiveOptions | DirectiveFunction>, plugins?: Dict<BvPlugin> }
 /**
  * Plugin install factory function.
  * @param {object} { components, directives }
  * @returns {function} plugin install function
  */
-export const installFactory = ({ components, directives, plugins }: { components?: Dict<BvComponent>, directives?: Dict<DirectiveOptions | DirectiveFunction>, plugins?: Dict<BvPlugin> }) => {
-  const install = (Vue: VueConstructor, config = {}) => {
+export const installFactory = ({ components, directives, plugins }:factoryOptions) => {
+  const install = (Vue:VueConstructor, config = {}) => {
     if (install.installed) {
       /* istanbul ignore next */
       return
     }
     install.installed = true
     checkMultipleVue(Vue)
-    setConfig(config)
+    setConfig(config, Vue)
     registerComponents(Vue, components)
     registerDirectives(Vue, directives)
     registerPlugins(Vue, plugins)
@@ -57,6 +31,18 @@ export const installFactory = ({ components, directives, plugins }: { components
   install.installed = false
 
   return install
+}
+
+/**
+ * Plugin object factory function.
+ * @param {object} { components, directives, plugins }
+ * @returns {object} plugin install object
+ */
+export const pluginFactory = (opts:factoryOptions = {}, extend = {}):BvPlugin => {
+  return {
+    ...extend,
+    install: installFactory(opts)
+  }
 }
 
 /**

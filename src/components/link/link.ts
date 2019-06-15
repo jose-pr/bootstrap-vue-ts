@@ -1,8 +1,7 @@
 import Vue from 'Vue'
 import { mergeData } from 'vue-functional-data-merge'
 import { PropOptions, CreateElement } from 'vue'
-import Component from 'vue-class-component'
-import { BvComponent, BvComponentConfig } from '../../common/BvComponent'
+import { BvComponentConfig } from '../../core/BvComponent'
 import { PropsDef, Dict, keys, arrayIncludes, concat, isRouterLink, isFunction, computeTag, computeRel, computeHref, isVueElement, functionalComponent } from '../../utils';
 
 /**

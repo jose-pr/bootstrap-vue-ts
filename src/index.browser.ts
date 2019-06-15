@@ -1,5 +1,5 @@
 // Main entry point for the browser build
-import { vueUse } from './common/BvPlugin'
+import { vueUse } from './core/BvPlugin'
 
 import BootstrapVue from './index'
 

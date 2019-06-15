@@ -2,7 +2,7 @@
 import assignPolyfill from 'core-js/features/object/assign'
 //@ts-ignore
 import isPolyfill from 'core-js/features/object/is'
-import { Dict } from './types';
+import { Dict, Primitive } from './types';
 
 // --- Static ---
 
@@ -31,7 +31,7 @@ export const isObject =  (obj:any): obj is Dict<any> => obj !== null && typeof o
  * Strict object type check. Only returns true
  * for plain JavaScript objects.
  */
-export const isPlainObject = (obj:any) => Object.prototype.toString.call(obj) === '[object Object]'
+export const isPlainObject = (obj:any):obj is Dict<any> => Object.prototype.toString.call(obj) === '[object Object]'
 
 //type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 // @link https://gist.github.com/bisubus/2da8af7e801ffd813fab7ac221aa7afc
@@ -41,3 +41,24 @@ export const omit = <I extends Dict<any>,R>(obj:I, props:string[]):Omit<I,keyof 
     .reduce((result, key) => ({ ...result, [key]: obj[key] }), {}) as any
 
 export const readonlyDescriptor = ():PropertyDescriptor => ({ enumerable: true, configurable: false, writable: false })
+
+/**
+ * Deep-freezes and object, making it immutable / read-only.
+ * Returns the same object passed-in, but frozen.
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze
+ */
+export const deepFreeze = <T>(obj:T):Readonly<T> => {
+  let o = obj as Dict<any>
+  // Retrieve the property names defined on object
+  const props = getOwnPropertyNames(obj)
+  // Freeze properties before freezing self
+  for (let prop of props) {
+    let value = o[prop]
+    o[prop] = value && isObject(value) ? deepFreeze(value) : value
+  }
+  return freeze(obj)
+}
+
+// --- "Instance" ---
+
+export const hasOwnProperty = (obj:any, prop:string) => Object.prototype.hasOwnProperty.call(obj, prop)

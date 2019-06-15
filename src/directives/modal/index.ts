@@ -1,4 +1,4 @@
-import { BvPlugin, installFactory } from '../../common/BvPlugin'
+import { BvPlugin, installFactory } from '../../core/BvPlugin'
 import { DirectiveOptions, DirectiveFunction } from '../../utils/vue'
 import { Dict } from '../../utils/types'
 //

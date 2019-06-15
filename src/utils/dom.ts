@@ -1,6 +1,7 @@
 import { from as arrayFrom } from './array'
 import { hasWindowSupport, hasDocumentSupport, hasPassiveEventSupport } from './env'
-import { isFunction, isNull, isObject } from './inspect'
+import { isFunction, isNull } from './inspect'
+import { isObject } from './object';
 
 // --- Constants ---
 
