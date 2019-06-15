@@ -1,18 +1,22 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2015",
     "module": "esnext",
     "strict": true,
+    "outDir": "dist/es",
+    "rootDir": "src",
+    "declarationMap": false,
     "jsx": "preserve",
     "importHelpers": true,
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "sourceMap": true,
+    "sourceMap": false,
+    "declaration": true,
+    "declarationDir": "dist/types",
     "baseUrl": ".",
     "types": [
-      "webpack-env",
       "jest"
     ],
     "paths": {
@@ -30,9 +34,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.vue",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "src/**/*.vue"
   ],
   "exclude": [
     "node_modules"

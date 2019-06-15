@@ -1,14 +1,36 @@
 module.exports = {
-  root: true,
-  env: {
-    node: true
-  },
-  extends: ["plugin:vue/essential", "@vue/prettier", "@vue/typescript"],
-  rules: {
-    "no-console": process.env.NODE_ENV === "production" ? "error" : "off",
-    "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off"
-  },
+  extends: ['standard', 'plugin:vue/recommended', 'plugin:prettier/recommended',"plugin:vue/essential", "@vue/prettier", "@vue/typescript"],
+  plugins: ['jest', 'markdown', 'node', 'promise'],
   parserOptions: {
-    parser: "@typescript-eslint/parser"
+    parser: "@typescript-eslint/parser",
+//    sourceType: 'module'
+  },
+  env: {
+    browser: true,
+    es6: true,
+    'jest/globals': true
+  },
+  globals: {
+    Vue: true
+  },
+  rules: {
+    'vue/html-self-closing': [
+      'error',
+      {
+        html: {
+          void: 'never',
+          normal: 'never',
+          component: 'never'
+        }
+      }
+    ],
+    'vue/max-attributes-per-line': ['error', { singleline: 4 }],
+    'vue/no-template-shadow': 'off',
+    'vue/no-use-v-if-with-v-for': 'off',
+    'vue/no-v-html': 'off',
+    'vue/require-default-prop': 'off',
+    'vue/require-prop-types': 'off',
+    'vue/singleline-html-element-content-newline': 'off'
   }
-};
+}
+
