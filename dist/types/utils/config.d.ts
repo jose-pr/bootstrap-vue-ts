@@ -1,0 +1,9 @@
+export declare const getConfig: () => BvConfigOptions;
+export declare const getConfigValue: (key: string) => any;
+export declare const getComponentConfig: (cmpName: string, key?: string | undefined) => any;
+export declare const getBreakpoints: () => string[];
+export declare const getBreakpointsCached: () => string[];
+export declare const getBreakpointsUp: () => string[];
+export declare const getBreakpointsUpCached: (...args: never[]) => string[];
+export declare const getBreakpointsDown: () => string[];
+export declare const getBreakpointsDownCached: () => string[];
