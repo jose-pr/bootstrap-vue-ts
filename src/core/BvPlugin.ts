@@ -1,4 +1,4 @@
-import { setConfig } from '../BvConfig'
+import { setConfig } from './BvConfig'
 import { hasWindowSupport } from '../utils/env'
 import {
   VueConstructor,

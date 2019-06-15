@@ -1,12 +1,12 @@
-import OurVue from './utils/vue'
-import cloneDeep from './utils/clone-deep'
-import get from './utils/get'
-import warn from './utils/warn'
-import { isString, isUndefined } from './utils/inspect'
-import { getOwnPropertyNames, hasOwnProperty, isPlainObject } from './utils/object'
-import DEFAULTS, { BV_CONFIG_PROP_NAME } from './defaults'
-import { Dict } from './utils/types'
-import { isArray } from './utils/array'
+import OurVue from '../utils/vue'
+import cloneDeep from '../utils/clone-deep'
+import get from '../utils/get'
+import warn from '../utils/warn'
+import { isString, isUndefined } from '../utils/inspect'
+import { getOwnPropertyNames, hasOwnProperty, isPlainObject } from '../utils/object'
+import DEFAULTS, { BV_CONFIG_PROP_NAME } from '../defaults'
+import { Dict } from '../utils/types'
+import { isArray } from '../utils/array'
 
 // --- Constants ---
 

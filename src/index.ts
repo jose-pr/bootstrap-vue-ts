@@ -1,5 +1,5 @@
 import { installFactory, BvPlugin } from './core/BvPlugin'
-import { setConfig } from './BvConfig'
+import { setConfig } from './core/BvConfig'
 import { componentsPlugin, ComponentsConfig } from './components'
 import { directivesPlugin } from './directives'
 import BVConfigPlugin from './core/ConfigPlugin'
