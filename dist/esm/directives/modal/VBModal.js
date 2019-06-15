@@ -1,4 +1,4 @@
-import { q as bindTargets, u as unbindTargets, r as removeAttr, s as setAttr } from './chunk-f3e511bd.js';
+import { q as bindTargets, u as unbindTargets, r as removeAttr, s as setAttr } from '../../chunks/f3e511bd.js';
 import 'vue';
 
 // Target listen types

@@ -14,7 +14,8 @@ export default {
       format: 'esm',
       globals: {
         vue: 'Vue'
-      }
+      },
+      chunkFileNames: 'chunks/[hash].js'
     }
   ],
   external: ['vue'],

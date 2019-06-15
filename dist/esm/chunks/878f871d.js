@@ -1,5 +1,5 @@
-import { n as functionalComponent } from './chunk-f3e511bd.js';
-import './chunk-efcf0387.js';
+import { n as functionalComponent } from './f3e511bd.js';
+import './efcf0387.js';
 
 const props = {
     tag: {

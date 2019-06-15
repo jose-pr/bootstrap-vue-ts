@@ -1,8 +1,7 @@
-import { n as functionalComponent, l as concat, k as keys, m as arrayIncludes, o as isVueElement, p as isFunction } from './chunk-f3e511bd.js';
-import { a as computeTag, b as computeHref, i as isRouterLink, d as computeRel } from './chunk-efcf0387.js';
-import 'vue';
-import './chunk-2cd43649.js';
-import { a } from './chunk-cc02fd47.js';
+import { l as concat, k as keys, m as arrayIncludes, n as functionalComponent, o as isVueElement, p as isFunction } from './f3e511bd.js';
+import { a as computeTag, b as computeHref, i as isRouterLink, d as computeRel } from './efcf0387.js';
+import './2cd43649.js';
+import { a } from './cc02fd47.js';
 
 const propsFactory = () => {
     return {
@@ -163,5 +162,4 @@ var link = functionalComponent({
     }
 });
 
-export default link;
-export { omitLinkProps, pickLinkProps, props, propsFactory };
+export { props as a, pickLinkProps as b, link as l, omitLinkProps as o, propsFactory as p };

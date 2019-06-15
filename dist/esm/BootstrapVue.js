@@ -1,16 +1,16 @@
-import './chunk-f3e511bd.js';
-import './chunk-efcf0387.js';
+import './chunks/f3e511bd.js';
+import './chunks/efcf0387.js';
 import 'vue';
-import './chunk-2cd43649.js';
-import { i as installFactory, p as pluginFactory, s as setConfig } from './chunk-2cc6687b.js';
-export { s as setConfig } from './chunk-2cc6687b.js';
-import './chunk-cc02fd47.js';
-import { l as link } from './chunk-9f07a9fc.js';
-export { o as omitLinkProps, b as pickLinkProps, a as props, p as propsFactory } from './chunk-9f07a9fc.js';
-import { B as BNavbarNav, a as BNavbar } from './chunk-878f871d.js';
-export { c as BNavbar, b as BNavbarNav } from './chunk-878f871d.js';
-import { V as VBModal } from './chunk-8a0e383a.js';
-export { a as VBModal } from './chunk-8a0e383a.js';
+import './chunks/2cd43649.js';
+import { i as installFactory, p as pluginFactory, s as setConfig } from './chunks/2cc6687b.js';
+export { s as setConfig } from './chunks/2cc6687b.js';
+import './chunks/cc02fd47.js';
+import { l as link } from './chunks/9f07a9fc.js';
+export { o as omitLinkProps, b as pickLinkProps, a as props, p as propsFactory } from './chunks/9f07a9fc.js';
+import { B as BNavbarNav, a as BNavbar } from './chunks/878f871d.js';
+export { c as BNavbar, b as BNavbarNav } from './chunks/878f871d.js';
+import { V as VBModal } from './chunks/8a0e383a.js';
+export { a as VBModal } from './chunks/8a0e383a.js';
 
 const LinkComponents = {
     BLink: link,

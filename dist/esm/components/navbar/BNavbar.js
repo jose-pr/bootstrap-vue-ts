@@ -1,5 +1,5 @@
-import { n as functionalComponent } from './chunk-f3e511bd.js';
-import './chunk-efcf0387.js';
+import { n as functionalComponent } from '../../chunks/f3e511bd.js';
+import '../../chunks/efcf0387.js';
 import 'vue';
 
 const props = {
@@ -31,12 +31,12 @@ const props = {
         default: false
     }
 };
-const BNavbarNav = functionalComponent({
+const BNavbar = functionalComponent({
     props: props,
     methods: {
         Test: () => '123'
     }
 });
 
-export default BNavbarNav;
-export { BNavbarNav };
+export default BNavbar;
+export { BNavbar };

@@ -11,7 +11,8 @@ export default {
       name: 'BootstrapVue',
       globals: {
         vue: 'Vue'
-      }
+      },
+      entryFileNames: 'chunks/[hash].js'
     }
   ],
   external: ['vue'],

@@ -21,6 +21,7 @@ interface module {
   fullpath: string
   filename: string
   extension: string
+  output: string
 }
 interface component extends module {}
 interface plugin extends module {
@@ -45,10 +46,12 @@ function getModuleFrom(name: string, filename: string, path: string): module {
     if (acc.endsWith('-')) return acc.slice(0, -1) + char.toUpperCase()
     return acc + char
   }, '')
+  let output = (path ? path + '/' + name : name).slice(SRC_PATH.length + 1)
   return {
     name: name,
     fullpath: path + '/' + filename,
     filename: filename.split('.')[0],
+    output: output,
     extension: filename
       .split('.')
       .slice(1)
@@ -253,8 +256,8 @@ async function RollupInputs(plugins: plugin[]) {
   rollupInputs.DeclareObject(
     plugins.reduce(
       (d, p) => {
-        d[p.name] = `./${p.fullpath}/index.ts`
-        p.components.forEach(c => (d[c.name] = `${c.fullpath}`))
+        d[p.output] = `./${p.fullpath}/index.ts`
+        p.components.forEach(c => (d[c.output] = `${c.fullpath}`))
         return d
       },
       {} as any
