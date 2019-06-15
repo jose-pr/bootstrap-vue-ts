@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { setAttr, removeAttr } from '../../utils/dom'
 import { bindTargets, unbindTargets } from '../../utils/target'
 import { VNode, DirectiveOptions, DirectiveBinding } from '../../utils/vue'
@@ -8,7 +10,7 @@ const listenTypes = { click: true }
 // Emitted show event for modal
 const EVENT_SHOW = 'bv::show::modal'
 
-const setRole = (el: Element, binding: DirectiveBinding, vnode: VNode) => {
+const setRole = (el: Element, binding: DirectiveBinding, vnode: VNode): void => {
   if (el.tagName !== 'BUTTON') {
     setAttr(el, 'role', 'button')
   }
@@ -19,9 +21,9 @@ const setRole = (el: Element, binding: DirectiveBinding, vnode: VNode) => {
  */
 export const VBModal: DirectiveOptions = {
   // eslint-disable-next-line no-shadow-restricted-names
-  bind(el: Element, binding: DirectiveBinding, vnode: VNode) {
-    bindTargets(vnode, binding, listenTypes, ({ targets, vnode }) => {
-      targets.forEach(target => {
+  bind(el: Element, binding: DirectiveBinding, vnode: VNode): void {
+    bindTargets(vnode, binding, listenTypes, ({ targets, vnode }): void => {
+      targets.forEach((target): void => {
         vnode!.context!.$root.$emit(EVENT_SHOW, target, vnode.elm)
       })
     })
@@ -31,7 +33,7 @@ export const VBModal: DirectiveOptions = {
   // @ts-ignore
   updated: setRole,
   componentUpdated: setRole,
-  unbind(el: Element, binding: DirectiveBinding, vnode: VNode) {
+  unbind(el: Element, binding: DirectiveBinding, vnode: VNode): void {
     unbindTargets(vnode, binding, listenTypes)
     // If element is not a button, we add `role="button"` for accessibility
     if (el.tagName !== 'BUTTON') {
