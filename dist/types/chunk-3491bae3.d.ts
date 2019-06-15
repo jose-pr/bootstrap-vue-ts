@@ -1,6 +1,20 @@
-import { VueConstructor, DirectiveOptions, DirectiveFunction, PluginObject, PluginFunction } from '../utils/vue';
-import { Dict } from '../utils/types';
-import { BvComponent } from './BvComponent';
+import OurVue from "chunk-1bdb7d0e";
+import { VueConstructor, DirectiveOptions, DirectiveFunction, PluginObject, PluginFunction, Dict } from "chunk-1bdb7d0e";
+import { BvComponent } from "chunk-39591e18";
+declare class BvConfig {
+    private $_config;
+    private $_cachedBreakpoints;
+    constructor();
+    static readonly Defaults: BvConfigOptions;
+    private readonly defaults;
+    getDefaults(): BvConfigOptions;
+    setConfig(config?: BvConfigOptions): void;
+    resetConfig(): void;
+    getConfig(): BvConfigOptions;
+    getConfigValue(key: string): BvConfigOptions;
+}
+declare const setConfig: (config?: {}, Vue?: import("vue/types/vue").VueConstructor<OurVue>) => void;
+declare const resetConfig: () => void;
 export interface BvPlugin extends PluginObject<BvConfigOptions> {
     install: PluginFunction<BvConfigOptions>;
 }
@@ -34,19 +48,19 @@ export declare const registerComponents: (Vue: VueConstructor<import("vue/types/
  * @param {string} Directive name
  * @param {object} Directive definition
  */
-export declare const registerDirective: (Vue: VueConstructor<import("vue/types/vue").Vue>, name: string, def: DirectiveFunction | DirectiveOptions) => void;
+export declare const registerDirective: (Vue: VueConstructor<import("vue/types/vue").Vue>, name: string, def: DirectiveOptions | DirectiveFunction) => void;
 /**
  * Load a group of directives.
  * @param {object} Vue
  * @param {object} Object of directive definitions
  */
-export declare const registerDirectives: (Vue: VueConstructor<import("vue/types/vue").Vue>, directives?: Dict<DirectiveFunction | DirectiveOptions>) => void;
+export declare const registerDirectives: (Vue: VueConstructor<import("vue/types/vue").Vue>, directives?: Dict<DirectiveOptions | DirectiveFunction>) => void;
 /**
  * Plugin install factory function.
  * @param {object} { components, directives }
  * @returns {function} plugin install function
  */
-export declare const installFactory: ({ components, directives, plugins }: FactoryOptions) => PluginFunction<BvConfigOptions>;
+export declare const installFactory: ({ components, directives, plugins }: FactoryOptions) => PluginFunction<any>;
 /**
  * Plugin object factory function.
  * @param {object} { components, directives, plugins }
@@ -58,4 +72,4 @@ export declare const pluginFactory: (opts?: FactoryOptions, extend?: {}) => BvPl
  * @param {object} Plugin definition
  */
 export declare const vueUse: (VuePlugin: BvPlugin) => void;
-export {};
+export { BvConfig, setConfig, resetConfig };

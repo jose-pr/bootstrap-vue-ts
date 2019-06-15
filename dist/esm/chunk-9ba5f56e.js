@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { setAttr, removeAttr } from '../../utils/dom';
-import { bindTargets, unbindTargets } from '../../utils/target';
+import { t as bindTargets, u as unbindTargets, v as removeAttr, x as setAttr } from './chunk-1bdb7d0e.js';
+
 // Target listen types
 const listenTypes = { click: true };
 // Emitted show event for modal
@@ -14,7 +12,7 @@ const setRole = (el, binding, vnode) => {
 /*
  * Export our directive
  */
-export const VBModal = {
+const VBModal = {
     // eslint-disable-next-line no-shadow-restricted-names
     bind(el, binding, vnode) {
         bindTargets(vnode, binding, listenTypes, ({ targets, vnode }) => {
@@ -23,7 +21,7 @@ export const VBModal = {
             });
         });
         // If element is not a button, we add `role="button"` for accessibility
-        setRole(el, binding, vnode);
+        setRole(el);
     },
     // @ts-ignore
     updated: setRole,
@@ -36,4 +34,5 @@ export const VBModal = {
         }
     }
 };
-export default VBModal;
+
+export { VBModal as V, VBModal as a };

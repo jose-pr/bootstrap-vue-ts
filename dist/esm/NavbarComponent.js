@@ -1,4 +1,6 @@
-import { functionalComponent } from '../../utils';
+import { m as functionalComponent } from './chunk-1bdb7d0e.js';
+import 'vue';
+
 const props = {
     tag: {
         type: String,
@@ -28,10 +30,12 @@ const props = {
         default: false
     }
 };
-export const BNavbarNav = functionalComponent({
+const BNavbar = functionalComponent({
     props: props,
     methods: {
         Test: () => '123'
     }
 });
-export default BNavbarNav;
+
+export default BNavbar;
+export { BNavbar };

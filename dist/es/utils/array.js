@@ -1,6 +1,6 @@
-//@ts-ignore
+// @ts-ignore
 import fromPolyfill from 'core-js/features/array/from';
-//@ts-ignore
+// @ts-ignore
 import isArrayPolyfill from 'core-js/features/array/is-array';
 // --- Static ---
 export const from = Array.from || fromPolyfill;

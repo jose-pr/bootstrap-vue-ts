@@ -1,14 +1,14 @@
 import commonjs from 'rollup-plugin-commonjs'
 import typescript from '@wessberg/rollup-plugin-ts'
 import nodeResolver from 'rollup-plugin-node-resolve'
+import inputs from './rollup.inputs'
 
 export default {
-  input: 'src/index.browser.ts',
+  input: inputs,
   output: [
     {
-      file: 'dist/boostrap-vue.js',
-      format: 'umd',
-      name: 'BootstrapVue',
+      dir: 'dist/esm',
+      format: 'esm',
       globals: {
         vue: 'Vue'
       }

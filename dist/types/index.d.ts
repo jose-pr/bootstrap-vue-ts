@@ -1,12 +1,10 @@
 import { BvPlugin } from './core/BvPlugin';
-import { setConfig } from './bv-config';
+import { setConfig } from './core/BvConfig';
 import { ComponentsConfig } from './components';
 import BVConfigPlugin from './core/ConfigPlugin';
+import { PluginFunction } from './utils/vue';
 import { BvComponentConfig } from './core/BvComponent';
-declare const install: {
-    (Vue: import("vue/types/vue").VueConstructor<import("vue/types/vue").Vue>, config?: {}): void;
-    installed: boolean;
-};
+declare const install: PluginFunction<global.BvConfigOptions>;
 declare global {
     type BvConfigOptions = {
         breakpoints?: string[];

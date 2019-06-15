@@ -1,11 +1,10 @@
-import OurVue, { FunctionalComponentOptions, VueConstructor } from "vue";
-import { PropOptions } from "vue/types/options";
-import { RecordPropsDefinition } from "vue/types/options";
+import OurVue, { FunctionalComponentOptions, VueConstructor } from 'vue';
+import { PropOptions, RecordPropsDefinition } from 'vue/types/options';
 import { Dict } from './types';
 export default OurVue;
 export * from 'vue';
 export * from 'vue/types/options';
-export declare function functionalComponent<Props>(options: Omit<FunctionalComponentOptions<Props, RecordPropsDefinition<Props>>, "functional"> & {
+export declare function functionalComponent<Props>(options: Omit<FunctionalComponentOptions<Props, RecordPropsDefinition<Props>>, 'functional'> & {
     methods?: Dict<Function>;
 }): VueConstructor<Props & OurVue>;
 /**

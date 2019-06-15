@@ -1,19 +1,19 @@
 import { installFactory } from '../../core/BvPlugin';
 //
-//Import all directives
+// Import all directives
 //
 import * as VBModalDirective from './modal';
 export const VBModalDirectives = {
-    VBModal: VBModalDirective.default,
+    VBModal: VBModalDirective.default
 };
 //
-//Plugin
+// Plugin
 //
 const VBModalPlugin = {
     install: installFactory({ components: VBModalDirectives })
 };
 //
-//Exports
+// Exports
 //
 export default VBModalPlugin;
 export { VBModalPlugin };

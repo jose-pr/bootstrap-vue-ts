@@ -10,10 +10,7 @@ export declare const componentPlugins: {
     NavbarPlugin: import("../core/BvPlugin").BvPlugin;
 };
 export declare const componentsPlugin: {
-    install: {
-        (Vue: import("vue").VueConstructor<import("vue").default>, config?: {}): void;
-        installed: boolean;
-    };
+    install: import("vue").PluginFunction<BvConfigOptions>;
 };
 export * from './link';
 export * from './navbar';

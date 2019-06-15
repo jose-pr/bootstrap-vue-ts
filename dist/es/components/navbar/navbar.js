@@ -1,16 +1,16 @@
-import { functionalComponent } from "../../utils";
+import { functionalComponent } from '../../utils';
 const props = {
     tag: {
         type: String,
-        default: "nav"
+        default: 'nav'
     },
     type: {
         type: String,
-        default: "light"
+        default: 'light'
     },
     variant: {
         type: String,
-        default: "dark"
+        default: 'dark'
     },
     toggleable: {
         type: [Boolean, String],

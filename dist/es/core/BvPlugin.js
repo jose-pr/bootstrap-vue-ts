@@ -1,35 +1,6 @@
-import { setConfig } from '../bv-config';
+import { setConfig } from './BvConfig';
 import { hasWindowSupport } from '../utils/env';
 import { checkMultipleVue } from '../utils/vue';
-/**
- * Plugin install factory function.
- * @param {object} { components, directives }
- * @returns {function} plugin install function
- */
-export const installFactory = ({ components, directives, plugins }) => {
-    const install = (Vue, config = {}) => {
-        if (install.installed) {
-            /* istanbul ignore next */
-            return;
-        }
-        install.installed = true;
-        checkMultipleVue(Vue);
-        setConfig(config, Vue);
-        registerComponents(Vue, components);
-        registerDirectives(Vue, directives);
-        registerPlugins(Vue, plugins);
-    };
-    install.installed = false;
-    return install;
-};
-/**
- * Plugin object factory function.
- * @param {object} { components, directives, plugins }
- * @returns {object} plugin install object
- */
-export const pluginFactory = (opts = {}, extend = {}) => {
-    return Object.assign({}, extend, { install: installFactory(opts) });
-};
 /**
  * Load a group of plugins.
  * @param {object} Vue
@@ -87,12 +58,42 @@ export const registerDirectives = (Vue, directives = {}) => {
     }
 };
 /**
+ * Plugin install factory function.
+ * @param {object} { components, directives }
+ * @returns {function} plugin install function
+ */
+export const installFactory = ({ components, directives, plugins }) => {
+    const install = (Vue, config = {}) => {
+        if (install.installed) {
+            /* istanbul ignore next */
+            return;
+        }
+        install.installed = true;
+        checkMultipleVue(Vue);
+        setConfig(config, Vue);
+        registerComponents(Vue, components);
+        registerDirectives(Vue, directives);
+        registerPlugins(Vue, plugins);
+    };
+    install.installed = false;
+    return install;
+};
+/**
+ * Plugin object factory function.
+ * @param {object} { components, directives, plugins }
+ * @returns {object} plugin install object
+ */
+export const pluginFactory = (opts = {}, extend = {}) => {
+    return Object.assign({}, extend, { install: installFactory(opts) });
+};
+/**
  * Install plugin if window.Vue available
  * @param {object} Plugin definition
  */
 export const vueUse = (VuePlugin) => {
     /* istanbul ignore next */
     if (hasWindowSupport && window.Vue) {
+        ;
         window.Vue.use(VuePlugin);
     }
 };

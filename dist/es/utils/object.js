@@ -1,6 +1,6 @@
-//@ts-ignore
+// @ts-ignore
 import assignPolyfill from 'core-js/features/object/assign';
-//@ts-ignore
+// @ts-ignore
 import isPolyfill from 'core-js/features/object/is';
 // --- Static ---
 export const assign = Object.assign || assignPolyfill;
@@ -27,12 +27,16 @@ export const isObject = (obj) => obj !== null && typeof obj === 'object';
  * for plain JavaScript objects.
  */
 export const isPlainObject = (obj) => Object.prototype.toString.call(obj) === '[object Object]';
-//type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
+// type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 // @link https://gist.github.com/bisubus/2da8af7e801ffd813fab7ac221aa7afc
 export const omit = (obj, props) => keys(obj)
     .filter(key => props.indexOf(key) === -1)
     .reduce((result, key) => (Object.assign({}, result, { [key]: obj[key] })), {});
-export const readonlyDescriptor = () => ({ enumerable: true, configurable: false, writable: false });
+export const readonlyDescriptor = () => ({
+    enumerable: true,
+    configurable: false,
+    writable: false
+});
 /**
  * Deep-freezes and object, making it immutable / read-only.
  * Returns the same object passed-in, but frozen.

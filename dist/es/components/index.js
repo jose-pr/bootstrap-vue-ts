@@ -3,7 +3,7 @@ import LinkPlugin from './link';
 import NavbarPlugin from './navbar';
 export const componentPlugins = {
     LinkPlugin,
-    NavbarPlugin,
+    NavbarPlugin
 };
 export const componentsPlugin = {
     install: installFactory({ plugins: componentPlugins })

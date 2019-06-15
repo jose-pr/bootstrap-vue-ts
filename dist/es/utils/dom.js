@@ -38,15 +38,18 @@ export const requestAF = w.requestAnimationFrame ||
         /* istanbul ignore next */
         return setTimeout(cb, 16);
     });
-export const MutationObs = w.MutationObserver || w.WebKitMutationObserver || w.MozMutationObserver || null;
+export const MutationObs = w.MutationObserver ||
+    w.WebKitMutationObserver ||
+    w.MozMutationObserver ||
+    null;
 // --- Utils ---
 // Normalize event options based on support of passive option
-// Exported only for testing purposes 
+// Exported only for testing purposes
 // Option key in object is capture not useCapture
 export const parseEventOptions = (options) => {
     /* istanbul ignore else: can't test in JSDOM, as it supports passive */
     if (hasPassiveEventSupport) {
-        return (isObject(options) ? options : { capture: Boolean(options || false) });
+        return isObject(options) ? options : { capture: Boolean(options || false) };
     }
     else {
         // Need to translate to actual Boolean value
@@ -162,17 +165,17 @@ export const removeAttr = (el, attr) => {
 };
 // Get an attribute value from an element
 // Returns `null` if not found
-export const getAttr = (el, attr) => (attr && isElement(el) ? el.getAttribute(attr) : null);
+export const getAttr = (el, attr) => attr && isElement(el) ? el.getAttribute(attr) : null;
 // Determine if an attribute exists on an element
 // Returns `true` or `false`, or `null` if element not found
-export const hasAttr = (el, attr) => (attr && isElement(el) ? el.hasAttribute(attr) : null);
+export const hasAttr = (el, attr) => attr && isElement(el) ? el.hasAttribute(attr) : null;
 // Return the Bounding Client Rect of an element
 // Returns `null` if not an element
 /* istanbul ignore next: getBoundingClientRect() doesn't work in JSDOM */
 export const getBCR = (el) => (isElement(el) ? el.getBoundingClientRect() : null);
 // Get computed style object for an element
 /* istanbul ignore next: getComputedStyle() doesn't work in JSDOM */
-export const getCS = (el) => (hasWindowSupport && isElement(el) ? w.getComputedStyle(el) : {});
+export const getCS = (el) => hasWindowSupport && isElement(el) ? w.getComputedStyle(el) : {};
 // Return an element's offset with respect to document element
 // https://j11y.io/jquery/#v=git&fn=jQuery.fn.offset
 export const offset = (el) => /* istanbul ignore next: getBoundingClientRect(), getClientRects() doesn't work in JSDOM */ {

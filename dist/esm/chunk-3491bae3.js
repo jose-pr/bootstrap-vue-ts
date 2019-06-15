@@ -1,18 +1,15 @@
-import OurVue from './utils/vue';
-import cloneDeep from './utils/clone-deep';
-import get from './utils/get';
-import warn from './utils/warn';
-import { isString, isUndefined } from './utils/inspect';
-import { getOwnPropertyNames, hasOwnProperty, isPlainObject } from './utils/object';
-import DEFAULTS, { BV_CONFIG_PROP_NAME } from './defaults';
-import { isArray } from './utils/array';
+import { B as BV_CONFIG_PROP_NAME, O as OurVue, D as DEFAULTS, i as isPlainObject, h as hasOwnProperty, w as warn, a as isArray, b as isString, c as cloneDeep, d as isUndefined, g as get, e as getOwnPropertyNames, f as checkMultipleVue } from './chunk-1bdb7d0e.js';
+import './chunk-39591e18.js';
+
 // --- Constants ---
 // Config manager class
-export class BvConfig {
+class BvConfig {
     constructor() {
         // TODO: pre-populate with default config values (needs updated tests)
         // this.$_config = cloneDeep(DEFAULTS)
+        // eslint-disable-next-line @typescript-eslint/camelcase
         this.$_config = {};
+        // eslint-disable-next-line @typescript-eslint/camelcase
         this.$_cachedBreakpoints = null;
     }
     static get Defaults() {
@@ -74,6 +71,7 @@ export class BvConfig {
     }
     // Clear the config. For testing purposes only
     resetConfig() {
+        // eslint-disable-next-line @typescript-eslint/camelcase
         this.$_config = {};
     }
     // Returns a deep copy of the user config
@@ -87,7 +85,7 @@ export class BvConfig {
     }
 }
 // Method for applying a global config
-export const setConfig = (config = {}, Vue = OurVue) => {
+const setConfig = (config = {}, Vue = OurVue) => {
     // Ensure we have a $bvConfig Object on the Vue prototype.
     // We set on Vue and OurVue just in case consumer has not set an alias of `vue`.
     Vue.prototype[BV_CONFIG_PROP_NAME] = OurVue.prototype[BV_CONFIG_PROP_NAME] =
@@ -95,9 +93,91 @@ export const setConfig = (config = {}, Vue = OurVue) => {
     // Apply the config values
     Vue.prototype[BV_CONFIG_PROP_NAME].setConfig(config);
 };
-// Method for resetting the user config. Exported for testing purposes only.
-export const resetConfig = () => {
-    if (OurVue.prototype[BV_CONFIG_PROP_NAME] && OurVue.prototype[BV_CONFIG_PROP_NAME].resetConfig) {
-        OurVue.prototype[BV_CONFIG_PROP_NAME].resetConfig();
+
+/**
+ * Load a group of plugins.
+ * @param {object} Vue
+ * @param {object} Plugin definitions
+ */
+const registerPlugins = (Vue, plugins = {}) => {
+    for (let plugin in plugins) {
+        if (plugin && plugins[plugin]) {
+            Vue.use(plugins[plugin]);
+        }
     }
 };
+/**
+ * Load a component.
+ * @param {object} Vue
+ * @param {string} Component name
+ * @param {object} Component definition
+ */
+const registerComponent = (Vue, name, def) => {
+    if (Vue && name && def) {
+        Vue.component(name, def);
+    }
+};
+/**
+ * Load a group of components.
+ * @param {object} Vue
+ * @param {object} Object of component definitions
+ */
+const registerComponents = (Vue, components = {}) => {
+    for (let component in components) {
+        registerComponent(Vue, component, components[component]);
+    }
+};
+/**
+ * Load a directive.
+ * @param {object} Vue
+ * @param {string} Directive name
+ * @param {object} Directive definition
+ */
+const registerDirective = (Vue, name, def) => {
+    if (Vue && name && def) {
+        // Ensure that any leading V is removed from the
+        // name, as Vue adds it automatically
+        Vue.directive(name.replace(/^VB/, 'B'), def);
+    }
+};
+/**
+ * Load a group of directives.
+ * @param {object} Vue
+ * @param {object} Object of directive definitions
+ */
+const registerDirectives = (Vue, directives = {}) => {
+    for (let directive in directives) {
+        registerDirective(Vue, directive, directives[directive]);
+    }
+};
+/**
+ * Plugin install factory function.
+ * @param {object} { components, directives }
+ * @returns {function} plugin install function
+ */
+const installFactory = ({ components, directives, plugins }) => {
+    const install = (Vue, config = {}) => {
+        if (install.installed) {
+            /* istanbul ignore next */
+            return;
+        }
+        install.installed = true;
+        checkMultipleVue(Vue);
+        setConfig(config, Vue);
+        registerComponents(Vue, components);
+        registerDirectives(Vue, directives);
+        registerPlugins(Vue, plugins);
+    };
+    install.installed = false;
+    return install;
+};
+/**
+ * Plugin object factory function.
+ * @param {object} { components, directives, plugins }
+ * @returns {object} plugin install object
+ */
+const pluginFactory = (opts = {}, extend = {}) => {
+    return Object.assign({}, extend, { install: installFactory(opts) });
+};
+
+export { installFactory as i, pluginFactory as p, setConfig as s };

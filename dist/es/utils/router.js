@@ -60,6 +60,7 @@ export const parseQuery = (query) => {
     if (!query) {
         return parsed;
     }
+    ;
     query.split('&').forEach(param => {
         const parts = param.replace(/\+/g, ' ').split('=');
         const key = decode(parts.shift());
@@ -68,9 +69,11 @@ export const parseQuery = (query) => {
             parsed[key] = val;
         }
         else if (isArray(parsed[key])) {
+            ;
             parsed[key].push(val);
         }
         else {
+            ;
             parsed[key] = [parsed[key], val];
         }
     });

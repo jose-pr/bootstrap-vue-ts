@@ -1,4 +1,4 @@
-import OurVue from "vue";
+import OurVue from 'vue';
 import { warn } from './warn';
 import { isJSDOM } from './env';
 //

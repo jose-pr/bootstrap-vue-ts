@@ -1,5 +1,5 @@
 import { installFactory } from './core/BvPlugin';
-import { setConfig } from './bv-config';
+import { setConfig } from './core/BvConfig';
 import { componentsPlugin } from './components';
 import { directivesPlugin } from './directives';
 import BVConfigPlugin from './core/ConfigPlugin';
@@ -9,8 +9,7 @@ export const BootstrapVue = {
     install: install,
     setConfig: setConfig
 };
-export default BootstrapVue;
-// Named exports for BvConfigPlugin and BootstrapVue
+export default BootstrapVue; // Named exports for BvConfigPlugin and BootstrapVue
 export { 
 // BV Config Plugin
 BVConfigPlugin, 

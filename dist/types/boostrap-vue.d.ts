@@ -2,7 +2,7 @@ import OurVue from "vue";
 import Vue from "vue";
 import Vue from "Vue";
 import { FunctionalComponentOptions, VueConstructor, PropOptions } from "vue";
-import { PropOptions } from "vue/types/options";
+import { PropOptions, RecordPropsDefinition } from "vue/types/options";
 declare type Primitive = string | boolean | number;
 declare type BooleanLike = string | boolean | number;
 interface Dict<T> {
@@ -21,7 +21,7 @@ declare const bindTargets: (vnode: VNode, binding: DirectiveBinding, listenTypes
     vnode: VNode;
 }) => void) => string[];
 declare const unbindTargets: (vnode: VNode, binding: DirectiveBinding, listenTypes: Dict<boolean>) => void;
-declare type BvComponentConfig = Dict<Primitive | Dict<Primitive | null | undefined> | Array<Primitive> | null | undefined>;
+declare type BvComponentConfig = Dict<Primitive | Dict<Primitive | null | undefined> | Primitive[] | null | undefined>;
 declare const setConfig: (config?: {}, Vue?: import("vue/types/vue").VueConstructor<OurVue>) => void;
 interface BvPlugin extends PluginObject<BvConfigOptions> {
     install: PluginFunction<BvConfigOptions>;
@@ -141,10 +141,7 @@ interface ComponentsConfig {
 }
 declare const VBModalPlugin: BvPlugin;
 declare const BVConfigPlugin: BvPlugin;
-declare const install: {
-    (Vue: import("vue/types/vue").VueConstructor<import("vue/types/vue").Vue>, config?: {}): void;
-    installed: boolean;
-};
+declare const install: PluginFunction<global.BvConfigOptions>;
 declare global {
     type BvConfigOptions = {
         breakpoints?: string[];

@@ -1,7 +1,7 @@
 import { installFactory } from '../core/BvPlugin';
 import VBModalPlugin from './modal';
 export const directivePlugins = {
-    VBModalPlugin,
+    VBModalPlugin
 };
 export const directivesPlugin = {
     install: installFactory({ plugins: directivePlugins })

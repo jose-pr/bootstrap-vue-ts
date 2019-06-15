@@ -1,15 +1,15 @@
-import OurVue from './utils/vue';
+import OurVue from '../utils/vue';
 export declare class BvConfig {
-    $_config: BvConfigOptions;
-    $_cachedBreakpoints: string[] | null;
+    private $_config;
+    private $_cachedBreakpoints;
     constructor();
-    static readonly Defaults: Readonly<BvConfigOptions>;
-    readonly defaults: Readonly<BvConfigOptions>;
-    getDefaults(): Readonly<BvConfigOptions>;
+    static readonly Defaults: BvConfigOptions;
+    private readonly defaults;
+    getDefaults(): BvConfigOptions;
     setConfig(config?: BvConfigOptions): void;
     resetConfig(): void;
     getConfig(): BvConfigOptions;
-    getConfigValue(key: string): any;
+    getConfigValue(key: string): BvConfigOptions;
 }
 export declare const setConfig: (config?: {}, Vue?: import("vue/types/vue").VueConstructor<OurVue>) => void;
 export declare const resetConfig: () => void;

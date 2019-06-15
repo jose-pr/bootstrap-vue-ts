@@ -1,4 +1,4 @@
-import { BooleanLike } from '../../utils';
+import { BooleanLike } from "chunk-1bdb7d0e";
 export interface BNavbarConfig {
     tag?: string | null;
     type?: string | null;
