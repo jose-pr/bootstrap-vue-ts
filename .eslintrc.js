@@ -2,7 +2,7 @@ module.exports = {
   extends: [
     'standard',
     'plugin:vue/recommended',    
-   // '@vue/typescript',
+    '@vue/typescript',
     'plugin:@typescript-eslint/recommended',
     'prettier/@typescript-eslint',
     'plugin:prettier/recommended',
