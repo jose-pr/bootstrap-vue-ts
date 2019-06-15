@@ -1,5 +1,6 @@
-import { B as BV_CONFIG_PROP_NAME, O as OurVue, D as DEFAULTS, i as isPlainObject, h as hasOwnProperty, w as warn, a as isArray, b as isString, c as cloneDeep, d as isUndefined, g as get, e as getOwnPropertyNames, f as checkMultipleVue } from './chunk-1bdb7d0e.js';
-import './chunk-39591e18.js';
+import { O as OurVue, a as isPlainObject, h as hasOwnProperty, w as warn, i as isArray, f as isString, c as isUndefined, g as getOwnPropertyNames, j as checkMultipleVue } from './chunk-f3e511bd.js';
+import { B as BV_CONFIG_PROP_NAME, D as DEFAULTS, c as cloneDeep, g as get } from './chunk-efcf0387.js';
+import './chunk-2cd43649.js';
 
 // --- Constants ---
 // Config manager class

@@ -1,16 +1,17 @@
-import './chunk-1bdb7d0e.js';
+import './chunk-f3e511bd.js';
+import './chunk-efcf0387.js';
 import 'vue';
-import './chunk-39591e18.js';
-import { i as installFactory } from './chunk-3491bae3.js';
-import { B as BNavbarNav, a as BNavbar } from './chunk-5ce49cc6.js';
-export { c as BNavbar, b as BNavbarNav } from './chunk-5ce49cc6.js';
+import './chunk-2cd43649.js';
+import { i as installFactory } from './chunk-2cc6687b.js';
+import { B as BNavbarNav, a as BNavbar } from './chunk-878f871d.js';
+export { c as BNavbar, b as BNavbarNav } from './chunk-878f871d.js';
 
 const NavbarComponents = {
     BNavbarNav: BNavbarNav,
-    BNavbar: BNavbar
+    BNavbar: BNavbar,
 };
 //
-// Plugin
+//Plugin
 //
 const NavbarPlugin = {
     install: installFactory({ components: NavbarComponents })

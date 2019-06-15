@@ -1,4 +1,5 @@
-import { t as bindTargets, u as unbindTargets, v as removeAttr, x as setAttr } from './chunk-1bdb7d0e.js';
+import { q as bindTargets, u as unbindTargets, r as removeAttr, s as setAttr } from './chunk-f3e511bd.js';
+import 'vue';
 
 // Target listen types
 const listenTypes = { click: true };
@@ -35,4 +36,5 @@ const VBModal = {
     }
 };
 
-export { VBModal as V, VBModal as a };
+export default VBModal;
+export { VBModal };

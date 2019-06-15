@@ -1,22 +1,22 @@
 import { BvPlugin, installFactory } from '../../core/BvPlugin'
 //
-// Import all components
+//Import all components
 //
 import * as BNavbarNavComponent from './navbar-nav'
 import * as BNavbarComponent from './navbar'
 
 export const NavbarComponents = {
-  BNavbarNav: BNavbarNavComponent.default,
-  BNavbar: BNavbarComponent.default
+    BNavbarNav:BNavbarNavComponent.default,
+    BNavbar:BNavbarComponent.default,
 }
 //
-// Plugin
+//Plugin
 //
-const NavbarPlugin: BvPlugin = {
-  install: installFactory({ components: NavbarComponents })
+const NavbarPlugin:BvPlugin = {
+    install: installFactory({components:NavbarComponents})
 }
 //
-// Exports
+//Exports
 //
 export default NavbarPlugin
 export { NavbarPlugin }

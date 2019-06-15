@@ -4,7 +4,10 @@ import nodeResolver from 'rollup-plugin-node-resolve'
 import inputs from './rollup.inputs'
 
 export default {
-  input: inputs,
+  input: {
+    ...inputs,
+    BootstrapVue: './src/index.ts'
+  },
   output: [
     {
       dir: 'dist/esm',

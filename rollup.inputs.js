@@ -1,9 +1,10 @@
 const inputs = {
   LinkPlugin: './src/components/link/index.ts',
-  LinkComponent: './src/components/link/link.ts',
+  BLink: 'src/components/link/link.ts',
   NavbarPlugin: './src/components/navbar/index.ts',
-  NavbarComponent: './src/components/navbar/navbar.ts',
-  ModalDirectivePlugin: './src/directives/modal/index.ts',
-  BootstrapVue: './src/index.ts'
+  BNavbarNav: 'src/components/navbar/navbar-nav.ts',
+  BNavbar: 'src/components/navbar/navbar.ts',
+  VBModalPlugin: './src/directives/modal/index.ts',
+  VBModal: 'src/directives/modal/modal.ts'
 }
 export default inputs
