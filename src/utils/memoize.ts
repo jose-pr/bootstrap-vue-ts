@@ -1,6 +1,6 @@
 import { create } from './object'
 
-const memoize = <T, R>(fn: (...args: T[]) => R) => {
+export const memoize = <T, R>(fn: (...args: T[]) => R) => {
   const cache = create(null)
 
   return (...args: T[]) => {

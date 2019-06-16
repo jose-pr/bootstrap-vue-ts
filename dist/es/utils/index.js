@@ -1,5 +1,5 @@
 //
-// Export all utils
+//Export all utils
 //
 export * from './array';
 export * from './clone-deep';
@@ -9,7 +9,9 @@ export * from './env';
 export * from './get';
 export * from './inspect';
 export * from './memoize';
+export * from './notuse';
 export * from './object';
+export * from './partiallyuse';
 export * from './router';
 export * from './target';
 export * from './to-string';

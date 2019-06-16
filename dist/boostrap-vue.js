@@ -1505,6 +1505,10 @@
       }
   };
 
+  const TestPartial1 = () => {
+      return 'TEST PARTIAL 1';
+  };
+
   /**
    * Convert a value to a string that can be rendered.
    */
@@ -1968,10 +1972,10 @@
   });
 
   const LinkComponents = {
-      BLink: link
+      BLink: link,
   };
   //
-  // Plugin
+  //Plugin
   //
   const LinkPlugin = {
       install: installFactory({ components: LinkComponents })
@@ -2051,10 +2055,10 @@
 
   const NavbarComponents = {
       BNavbarNav: BNavbarNav,
-      BNavbar: BNavbar
+      BNavbar: BNavbar,
   };
   //
-  // Plugin
+  //Plugin
   //
   const NavbarPlugin = {
       install: installFactory({ components: NavbarComponents })
@@ -2062,7 +2066,7 @@
 
   const componentPlugins = {
       LinkPlugin,
-      NavbarPlugin
+      NavbarPlugin,
   };
   const componentsPlugin = {
       install: installFactory({ plugins: componentPlugins })
@@ -2104,17 +2108,17 @@
   };
 
   const VBModalDirectives = {
-      VBModal: VBModal
+      VBModal: VBModal,
   };
   //
-  // Plugin
+  //Plugin
   //
   const VBModalPlugin = {
       install: installFactory({ components: VBModalDirectives })
   };
 
   const directivePlugins = {
-      VBModalPlugin
+      VBModalPlugin,
   };
   const directivesPlugin = {
       install: installFactory({ plugins: directivePlugins })
@@ -2132,6 +2136,7 @@
   // Main entry point for the browser build
   // Auto installation only occurs if window.Vue exists
   vueUse(BootstrapVue);
+  console.log(TestPartial1());
 
   return BootstrapVue;
 

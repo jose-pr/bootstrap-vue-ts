@@ -10,7 +10,7 @@ import { isObject } from './object';
  * @param {*} defaultValue (optional)
  * @return {*}
  */
-const get = (obj, path, defaultValue = null) => {
+export const get = (obj, path, defaultValue = null) => {
     // Handle array of path values
     path = isArray(path) ? path.join('.') : path;
     // If no path or no object passed

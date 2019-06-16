@@ -6,7 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "rollup": "rollup -c --environment BUILD:development",
+    "rollup": "rollup -c ./rollup---environment BUILD:development",
     "process": "cd scripts && ts-node indexMaker.ts",
     "test:unit": "vue-cli-service test:unit"
   },

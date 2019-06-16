@@ -22,6 +22,12 @@ declare const getBreakpointsUp: () => string[];
 declare const getBreakpointsUpCached: (...args: never[]) => string[];
 declare const getBreakpointsDown: () => string[];
 declare const getBreakpointsDownCached: () => string[];
+declare const TestNever1: () => string;
+declare const TestNever2: () => string;
+declare const TestNever3: () => string;
+declare const TestPartial1: () => string;
+declare const TestPartial2: () => string;
+declare const TestPartial3: () => string;
 /**
  * Convert a value to a string that can be rendered.
  */
@@ -54,11 +60,13 @@ export * from "f3e511bd";
 export * from "efcf0387";
 export * from "f3e511bd";
 export * from "efcf0387";
+export * from "efcf0387";
 export * from "f3e511bd";
+export * from "efcf0387";
 export * from "efcf0387";
 export * from "f3e511bd";
 export * from "efcf0387";
 export * from "f3e511bd";
 export * from "f3e511bd";
 export * from "f3e511bd";
-export { cloneDeep, get, BV_CONFIG_PROP_NAME, memoize, getConfig, getConfigValue, getComponentConfig, getBreakpoints, getBreakpointsCached, getBreakpointsUp, getBreakpointsUpCached, getBreakpointsDown, getBreakpointsDownCached, toString, stringifyQueryObj, parseQuery, isRouterLink, computeTag, computeRel, computeHref };
+export { cloneDeep, get, BV_CONFIG_PROP_NAME, memoize, getConfig, getConfigValue, getComponentConfig, getBreakpoints, getBreakpointsCached, getBreakpointsUp, getBreakpointsUpCached, getBreakpointsDown, getBreakpointsDownCached, TestNever1, TestNever2, TestNever3, TestPartial1, TestPartial2, TestPartial3, toString, stringifyQueryObj, parseQuery, isRouterLink, computeTag, computeRel, computeHref };

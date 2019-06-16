@@ -4,7 +4,7 @@ import { isPlainObject } from './object';
 /**
  * Convert a value to a string that can be rendered.
  */
-const toString = (val, spaces = 2) => {
+export const toString = (val, spaces = 2) => {
     return isUndefined(val) || isNull(val)
         ? ''
         : isArray(val) || (isPlainObject(val) && val.toString === Object.prototype.toString)

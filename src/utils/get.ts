@@ -11,7 +11,7 @@ import { isObject } from './object'
  * @param {*} defaultValue (optional)
  * @return {*}
  */
-const get = <T>(obj: any, path: string, defaultValue: T | null = null) => {
+export const get = <T>(obj: any, path: string, defaultValue: T | null = null) => {
   // Handle array of path values
   path = isArray(path) ? path.join('.') : path
 

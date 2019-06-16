@@ -8,5 +8,5 @@
  * @param {*} defaultValue (optional)
  * @return {*}
  */
-declare const get: <T>(obj: any, path: string, defaultValue?: T | null) => any;
+export declare const get: <T>(obj: any, path: string, defaultValue?: T | null) => any;
 export default get;
