@@ -1344,4 +1344,4 @@ const unbindTargets = (vnode, binding, listenTypes) => {
     });
 };
 
-export { OurVue__default as O, isPlainObject as a, isObject$1 as b, isUndefined as c, deepFreeze as d, isNull as e, isString as f, getOwnPropertyNames as g, hasOwnProperty$1 as h, isArray$3 as i, checkMultipleVue as j, keys$1 as k, concat as l, arrayIncludes$1 as m, functionalComponent as n, isVueElement as o, isFunction as p, bindTargets as q, removeAttr as r, setAttr as s, unbindTargets as u, warn as w };
+export { OurVue__default as O, isPlainObject as a, isObject$1 as b, isUndefined as c, deepFreeze as d, isNull as e, isString as f, getOwnPropertyNames as g, hasOwnProperty$1 as h, isArray$3 as i, checkMultipleVue as j, keys$1 as k, hasWindowSupport as l, concat as m, arrayIncludes$1 as n, functionalComponent as o, isVueElement as p, isFunction as q, bindTargets as r, removeAttr as s, setAttr as t, unbindTargets as u, warn as w };

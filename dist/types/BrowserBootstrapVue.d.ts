@@ -1,4 +1,5 @@
 import BVConfigPlugin from "chunks/a3dbdf34";
+import BootstrapVue from "BootstrapVue";
 import { BvPlugin, setConfig } from "chunks/a31a6b53";
 import { ComponentsConfig } from "chunks/a3dbdf34";
 import { PluginFunction } from "chunks/a38114fa";
@@ -9,10 +10,10 @@ declare global {
         breakpoints?: string[];
     } & ComponentsConfig & BvComponentConfig;
 }
-export declare type BvConfigOptions = {
+declare type BvConfigOptions = {
     breakpoints?: string[];
 } & ComponentsConfig & BvComponentConfig;
-export declare const BootstrapVue: BvPlugin;
+declare const BootstrapVue: BvPlugin;
 export default BootstrapVue;
 export { BVConfigPlugin as BVConfig };
 export * from "chunks/a3dbdf34";

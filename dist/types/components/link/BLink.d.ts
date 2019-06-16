@@ -1,7 +1,7 @@
 import Vue from "Vue";
 import { PropOptions } from "vue";
-import { BvComponentConfig } from "../../chunks/2cd43649";
-import { PropsDef, Dict } from "../../chunks/efcf0387";
+import { BvComponentConfig } from "../../chunks/8ccf66f8";
+import { PropsDef, Dict } from "../../chunks/1b6c0039";
 /**
  * The Link component is used in many other BV components.
  * As such, sharing its props makes supporting all its features easier.

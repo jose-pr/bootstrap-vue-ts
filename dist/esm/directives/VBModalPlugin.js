@@ -1,10 +1,10 @@
-import '../chunks/f3e511bd.js';
-import '../chunks/efcf0387.js';
+import '../chunks/a38114fa.js';
+import '../chunks/1b6c0039.js';
 import 'vue';
-import '../chunks/2cd43649.js';
-import { i as installFactory } from '../chunks/2cc6687b.js';
-import { V as VBModal } from '../chunks/8a0e383a.js';
-export { a as VBModal } from '../chunks/8a0e383a.js';
+import '../chunks/8ccf66f8.js';
+import { i as installFactory } from '../chunks/a31a6b53.js';
+import { V as VBModal } from '../chunks/20b2115e.js';
+export { a as VBModal } from '../chunks/20b2115e.js';
 
 const VBModalDirectives = {
     VBModal: VBModal,

@@ -1,5 +1,5 @@
 import Vue from "vue";
-import { BooleanLike } from "efcf0387";
+import { BooleanLike } from "1b6c0039";
 interface BNavbarNavConfig {
     tag: string;
     type: string;

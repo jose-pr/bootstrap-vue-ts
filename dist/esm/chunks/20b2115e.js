@@ -1,4 +1,4 @@
-import { q as bindTargets, u as unbindTargets, r as removeAttr, s as setAttr } from './f3e511bd.js';
+import { r as bindTargets, u as unbindTargets, s as removeAttr, t as setAttr } from './a38114fa.js';
 
 // Target listen types
 const listenTypes = { click: true };

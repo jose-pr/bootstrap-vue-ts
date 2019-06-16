@@ -1,6 +1,6 @@
-import { O as OurVue, a as isPlainObject, h as hasOwnProperty, w as warn, i as isArray, f as isString, c as isUndefined, g as getOwnPropertyNames, j as checkMultipleVue } from './f3e511bd.js';
-import { B as BV_CONFIG_PROP_NAME, D as DEFAULTS, c as cloneDeep, g as get } from './efcf0387.js';
-import './2cd43649.js';
+import { O as OurVue, a as isPlainObject, h as hasOwnProperty, w as warn, i as isArray, f as isString, c as isUndefined, g as getOwnPropertyNames, j as checkMultipleVue, l as hasWindowSupport } from './a38114fa.js';
+import { B as BV_CONFIG_PROP_NAME, D as DEFAULTS, c as cloneDeep, g as get } from './1b6c0039.js';
+import './8ccf66f8.js';
 
 // --- Constants ---
 // Config manager class
@@ -180,5 +180,15 @@ const installFactory = ({ components, directives, plugins }) => {
 const pluginFactory = (opts = {}, extend = {}) => {
     return Object.assign({}, extend, { install: installFactory(opts) });
 };
+/**
+ * Install plugin if window.Vue available
+ * @param {object} Plugin definition
+ */
+const vueUse = (VuePlugin) => {
+    /* istanbul ignore next */
+    if (hasWindowSupport && window.Vue) {
+        window.Vue.use(VuePlugin);
+    }
+};
 
-export { installFactory as i, pluginFactory as p, setConfig as s };
+export { installFactory as i, pluginFactory as p, setConfig as s, vueUse as v };

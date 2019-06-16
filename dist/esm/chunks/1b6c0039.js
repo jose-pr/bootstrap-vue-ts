@@ -1,4 +1,4 @@
-import { i as isArray, a as isPlainObject, k as keys, b as isObject, d as deepFreeze, O as OurVue, c as isUndefined, e as isNull, f as isString } from './f3e511bd.js';
+import { i as isArray, a as isPlainObject, k as keys, b as isObject, d as deepFreeze, O as OurVue, c as isUndefined, e as isNull, f as isString } from './a38114fa.js';
 import 'vue';
 
 const cloneDeep = (obj, defaultValue = obj) => {
@@ -198,6 +198,10 @@ var DEFAULTS = deepFreeze({
 // --- Constants ---
 const VueProto = OurVue.prototype;
 
+const TestPartial1 = () => {
+    return 'TEST PARTIAL 1';
+};
+
 /**
  * Convert a value to a string that can be rendered.
  */
@@ -303,4 +307,4 @@ const computeHref = ({ href, to } = {}, tag = ANCHOR_TAG, fallback = '#', toFall
     return fallback;
 };
 
-export { BV_CONFIG_PROP_NAME as B, DEFAULTS as D, computeTag as a, computeHref as b, cloneDeep as c, computeRel as d, get as g, isRouterLink as i };
+export { BV_CONFIG_PROP_NAME as B, DEFAULTS as D, TestPartial1 as T, computeTag as a, computeHref as b, cloneDeep as c, computeRel as d, get as g, isRouterLink as i };

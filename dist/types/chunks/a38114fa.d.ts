@@ -1,5 +1,5 @@
 import OurVue from "vue";
-import { Dict, Primitive, VueElement, VNode, DirectiveBinding } from "f3e511bd";
+import { Dict, Primitive, VueElement, VNode, DirectiveBinding } from "a38114fa";
 import { FunctionalComponentOptions, VueConstructor } from "vue";
 import { PropOptions, RecordPropsDefinition } from "vue/types/options";
 declare type ElementClass = string | string[];
