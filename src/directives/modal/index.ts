@@ -1,23 +1,23 @@
 import { BvPlugin, installFactory } from '../../core/BvPlugin'
-import { DirectiveOptions, DirectiveFunction } from '../../utils/vue'
-import { Dict } from '../../utils/types'
 //
-//Import all directives
+//Import all plugin components
 //
 import * as VBModalDirective from './modal'
 
-export const VBModalDirectives = {
-    VBModal:VBModalDirective.default,
+export const VBmodalDirectives = {
+  VBModal: VBModalDirective.default
 }
 //
 //Plugin
 //
-const VBModalPlugin:BvPlugin = {
-    install: installFactory({components:VBModalDirectives})
+const VBmodalPlugin: BvPlugin = {
+  install: installFactory({
+    components: VBmodalDirectives
+  })
 }
 //
 //Exports
 //
-export default VBModalPlugin
-export { VBModalPlugin }
+export default VBmodalPlugin
+export { VBmodalPlugin }
 export * from './modal'

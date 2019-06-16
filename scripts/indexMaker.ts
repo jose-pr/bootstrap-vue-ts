@@ -8,10 +8,12 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import { readdir, createWriteStream, WriteStream, stat } from 'fs'
 import { promisify } from 'util'
-import { resolve } from 'url'
-import { rejects } from 'assert'
-import { TSWritter } from './tsWrite'
-import { runInContext } from 'vm'
+import { TSWritter, CallFunction } from './tsWrite'
+
+const SRC_PATH = 'src'
+const UTILS_PATH = `${SRC_PATH}/utils`
+
+const ROOT_PATH = '..'
 
 const readdirAsync = promisify(readdir)
 const statAsync = promisify(stat)
@@ -26,10 +28,7 @@ interface module {
 interface component extends module {}
 interface plugin extends module {
   components: component[]
-}
-
-function range(size: number, startAt = 0) {
-  return Array.from(Array(size).keys()).map(i => i + startAt)
+  type: pluginType
 }
 
 async function createWriteStreamAsync(file: string, opts: any): Promise<WriteStream> {
@@ -59,34 +58,46 @@ function getModuleFrom(name: string, filename: string, path: string): module {
   }
 }
 
-async function createIndexForComponentPlugin(plugin: plugin) {
+declare function installFactory(...args: any): any
+
+async function createIndexForPlugin(plugin: plugin) {
   let files = await lsDir(plugin.fullpath)
-
   let index = new TSWritter()
-
   for (let c of files) {
-    let module = getModuleFrom(
-      COMPONENT_PREFIX + c + COMPONENT_POST,
-      c,
-      plugin.fullpath
-    ) as component
+    let module = getModuleFrom(plugin.type.componentNameFn(c), c, plugin.fullpath) as component
     let stats = await getStats(module.fullpath)
     if (stats.isFile() && c != 'index.ts' && c.endsWith('.ts')) plugin.components.push(module)
   }
   index.ImportFromModule('../../core/BvPlugin', ['BvPlugin', 'installFactory'])
-  index.Comment('Import all components')
+
+  index.Comment('Import all plugin components')
   plugin.components.forEach(c =>
-    index.ImportAllFromModule({ name: `${c.name}Component`, path: `./${c.filename}` })
+    index.ImportAllFromModule({
+      name: `${c.name}${plugin.type.nameSingular}`,
+      path: `./${c.filename}`
+    })
   )
   index.Append('')
-  index.Indent(
-    `export const ${plugin.name.replace('Plugin', '')}Components = {`,
-    plugin.components.map(c => `${c.name}:${c.name}Component.default,`)
+  index.DeclareObject(
+    plugin.components.reduce<Dict<symbol>>((o, c) => {
+      o[c.name] = Symbol(`${c.name}${plugin.type.nameSingular}.default`)
+      return o
+    }, {}),
+    `${plugin.name.replace('Plugin', plugin.type.namePlurar)}`,
+    'const',
+    true
   )
   index.Comment('Plugin')
-  index.Indent(
-    `const ${plugin.name}:BvPlugin = {`,
-    `install: installFactory({components:${plugin.name.replace('Plugin', '')}Components})`
+  index.DeclareObject(
+    {
+      install: new CallFunction('installFactory', [
+        {
+          components: Symbol(`${plugin.name.replace('Plugin', plugin.type.namePlurar)}`)
+        }
+      ])
+    },
+    `${plugin.name}: BvPlugin`,
+    'const'
   )
   index.Comment('Exports')
   index.ExportDefault(plugin.name)
@@ -94,21 +105,6 @@ async function createIndexForComponentPlugin(plugin: plugin) {
   index.ExportAllFromModules(plugin.components.map(c => `./${c.filename}`))
   await index.Write(getWritter(`${plugin.fullpath}/index.ts`))
 }
-const SRC_PATH = 'src'
-const COMPONENT_PLUGINS_PATH = `${SRC_PATH}/components`
-const DIRECTIVE_PLUGINS_PATH = `${SRC_PATH}/directives`
-
-const UTILS_PATH = `${SRC_PATH}/utils`
-
-const ROOT_PATH = '..'
-const COMPONENT_PREFIX = 'b-'
-const COMPONENT_POST = ''
-const COMPONENT_PLUGIN_PREFIX = ''
-const COMPONENT_PLUGIN_POST = '-plugin'
-const DIRECTIVE_PREFIX = 'v-b-'
-const DIRECTIVE_POST = ''
-const DIRECTIVE_PLUGIN_PREFIX = 'v-b-'
-const DIRECTIVE_PLUGIN_POST = '-plugin'
 
 function getWritter(path: string, opts: any = {}) {
   return async (content: string[]) => {
@@ -123,117 +119,73 @@ async function getStats(path: string) {
 async function lsDir(path: string) {
   return await readdirAsync(`${ROOT_PATH}/${path}`)
 }
-async function ProcessComponentPlugins() {
-  console.log('Process Plugins')
-  let filenames = await lsDir(COMPONENT_PLUGINS_PATH)
-  let index = new TSWritter()
+interface pluginType {
+  pluginNameFn: (filename: string) => string
+  componentNameFn: (filename: string) => string
+  nameSingular: string
+  namePlurar: string
+  dir: string
+  haveConfig: boolean
+}
+async function ProcessPlugins(types: pluginType[]) {
   let plugins: plugin[] = []
-  for (let filename of filenames) {
-    let module = getModuleFrom(
-      COMPONENT_PLUGIN_PREFIX + filename + COMPONENT_PLUGIN_POST,
-      filename,
-      COMPONENT_PLUGINS_PATH
-    ) as plugin
-    let stats = await getStats(module.fullpath)
-    //All directories under components are plugins
-    if (stats.isDirectory()) {
+
+  for (let type of types) {
+    console.log(`Process ${type.namePlurar} Plugins`)
+    let filenames = await lsDir(type.dir)
+    let index = new TSWritter()
+    for (let filename of filenames) {
+      let module = getModuleFrom(type.pluginNameFn(filename), filename, type.dir) as plugin
+      module.type = type
       module.components = []
-      plugins.push(module)
-      await createIndexForComponentPlugin(module)
+      let stats = await getStats(module.fullpath)
+      //All directories under components are plugins
+      if (stats.isDirectory()) {
+        plugins.push(module)
+        await createIndexForPlugin(module)
+      }
     }
-  }
-  index.ImportFromModule(`../core/BvPlugin`, `installFactory`)
-  plugins.forEach(p =>
-    index.ImportFromModule(`./${p.filename}`, p.components.map(c => `${c.name}Config`), p.name)
-  )
-  index.Indent(
-    'export interface ComponentsConfig {',
-    plugins.reduce<string[]>(
-      (lines, p) => lines.concat(p.components.map(c => `${c.name}?:${c.name}Config`)),
-      []
+    index.ImportFromModule(`../core/BvPlugin`, [`installFactory`, 'BvPlugin'])
+    if (type.haveConfig) {
+      plugins.forEach(p =>
+        index.ImportFromModule(`./${p.filename}`, p.components.map(c => `${c.name}Config`), p.name)
+      )
+      index.Indent(
+        `export interface ${type.namePlurar}Config {`,
+        plugins.reduce<string[]>(
+          (lines, p) => lines.concat(p.components.map(c => `${c.name}?: ${c.name}Config`)),
+          []
+        )
+      )
+    }
+
+    index.DeclareObject(
+      plugins.reduce<any>((o, p) => {
+        o[Symbol(p.name)] = null
+        return o
+      }, {}),
+      `${type.nameSingular}Plugins`,
+      'const',
+      true
     )
-  )
-  index.Indent('export const componentPlugins = {', plugins.map(p => `${p.name},`))
 
-  index.Indent(
-    'export const componentsPlugin = {',
-    `install: installFactory({ plugins: componentPlugins })`
-  )
-  plugins.forEach(p => index.ExportAllFromModules(`./${p.filename}`))
-  await index.Write(getWritter(`${COMPONENT_PLUGINS_PATH}/index.ts`))
+    index.DeclareObject(
+      {
+        install: new CallFunction('installFactory', [
+          {
+            components: Symbol(`${type.nameSingular}Plugins`)
+          }
+        ])
+      },
+      `${type.namePlurar}Plugin: BvPlugin`,
+      'const',
+      true
+    )
+    plugins.forEach(p => index.ExportAllFromModules(`./${p.filename}`))
+    await index.Write(getWritter(`${type.dir}/index.ts`))
+  }
 
   return plugins
-}
-
-async function ProcessDirectivePlugins() {
-  console.log('Process Directive Plugins')
-  let filenames = await lsDir(DIRECTIVE_PLUGINS_PATH)
-  let index = new TSWritter()
-  let plugins: plugin[] = []
-  for (let filename of filenames) {
-    let module = getModuleFrom(
-      DIRECTIVE_PLUGIN_PREFIX + filename + DIRECTIVE_PLUGIN_POST,
-      filename,
-      DIRECTIVE_PLUGINS_PATH
-    ) as plugin
-    let stats = await getStats(module.fullpath)
-    //All directories under components are plugins
-    if (stats.isDirectory()) {
-      module.components = []
-      plugins.push(module)
-      await createIndexForDirectivePlugin(module)
-    }
-  }
-  index.ImportFromModule(`../core/BvPlugin`, `installFactory`)
-  plugins.forEach(p => index.ImportFromModule(`./${p.filename}`, [], p.name))
-
-  index.Indent('export const directivePlugins = {', plugins.map(p => `${p.name},`))
-
-  index.Indent(
-    'export const directivesPlugin = {',
-    `install: installFactory({ plugins: directivePlugins })`
-  )
-  plugins.forEach(p => index.ExportAllFromModules(`./${p.filename}`))
-  await index.Write(getWritter(`${DIRECTIVE_PLUGINS_PATH}/index.ts`))
-  return plugins
-}
-async function createIndexForDirectivePlugin(plugin: plugin) {
-  let files = await lsDir(plugin.fullpath)
-
-  let index = new TSWritter()
-
-  for (let c of files) {
-    let module = getModuleFrom(
-      DIRECTIVE_PREFIX + c + DIRECTIVE_POST,
-      c,
-      plugin.fullpath
-    ) as component
-    let stats = await getStats(module.fullpath)
-    if (stats.isFile() && c != 'index.ts' && c.endsWith('.ts')) plugin.components.push(module)
-  }
-  index.ImportFromModule('../../core/BvPlugin', ['BvPlugin', 'installFactory'])
-  index.ImportFromModule('../../utils/vue', ['DirectiveOptions', 'DirectiveFunction'])
-  index.ImportFromModule('../../utils/types', ['Dict'])
-
-  index.Comment('Import all directives')
-  plugin.components.forEach(c =>
-    index.ImportAllFromModule({ name: `${c.name}Directive`, path: `./${c.filename}` })
-  )
-  index.Append('')
-  index.Indent(
-    `export const ${plugin.name.replace('Plugin', '')}Directives = {`,
-    plugin.components.map(c => `${c.name}:${c.name}Directive.default,`)
-  )
-  index.Comment('Plugin')
-  index.Indent(
-    `const ${plugin.name}:BvPlugin = {`,
-    `install: installFactory({components:${plugin.name.replace('Plugin', '')}Directives})`
-  )
-  index.Comment('Exports')
-  index.ExportDefault(plugin.name)
-  index.ExportModules(plugin.name)
-  index.ExportAllFromModules(plugin.components.map(c => `./${c.filename}`))
-  await index.Write(getWritter(`${plugin.fullpath}/index.ts`))
 }
 
 async function ProcessUtils() {
@@ -269,8 +221,25 @@ async function RollupInputs(plugins: plugin[]) {
   rollupInputs.Write(getWritter(`${SRC_PATH}/../rollup.inputs.js`))
 }
 async function run() {
-  let plugins = await ProcessComponentPlugins()
-  plugins = plugins.concat(await ProcessDirectivePlugins())
+  let componentPluginType: pluginType = {
+    namePlurar: 'Components',
+    nameSingular: 'Component',
+    componentNameFn: n => 'b-' + n,
+    pluginNameFn: n => n + '-plugin',
+    dir: `${SRC_PATH}/components`,
+    haveConfig: true
+  }
+
+  let directivePluginType: pluginType = {
+    namePlurar: 'Directives',
+    nameSingular: 'Directive',
+    componentNameFn: n => 'v-b-' + n,
+    pluginNameFn: n => 'v-b' + n + '-plugin',
+    dir: `${SRC_PATH}/directives`,
+    haveConfig: true
+  }
+
+  let plugins = await ProcessPlugins([componentPluginType, directivePluginType])
   await RollupInputs(plugins)
   ProcessUtils()
 }

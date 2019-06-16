@@ -1,8 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { setAttr, removeAttr } from '../../utils/dom'
-import { bindTargets, unbindTargets } from '../../utils/target'
-import { VNode, DirectiveOptions, DirectiveBinding } from '../../utils/vue'
+import {
+  setAttr,
+  removeAttr,
+  bindTargets,
+  unbindTargets,
+  VNode,
+  DirectiveOptions,
+  DirectiveBinding
+} from '../../utils'
 
 // Target listen types
 const listenTypes = { click: true }
