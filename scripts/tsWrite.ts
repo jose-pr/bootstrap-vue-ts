@@ -118,7 +118,7 @@ export class TSWritter {
   declareObject(obj: any): string[] {
     let lines: string[] = []
     if (isNumber(obj) || isBoolean(obj)) lines.push(obj.toString())
-    else if (isString(obj)) lines.push(`"${obj}"`)
+    else if (isString(obj)) lines.push(`'${obj}'`)
     else if (isArray(obj)) {
       lines = ['[', ...obj.map(o => `${this.indentFor(1)}${this.declareObject(o)},`), ']']
     } else if (isFunction(obj) && !(obj instanceof CallFunction)) {
@@ -156,7 +156,7 @@ export class TSWritter {
       for (let k in obj) {
         count++
         let validName = /^[a-zA-Z_][0-9a-zA-Z_]+$/
-        let name = k.match(validName) ? k : `"${k}"`
+        let name = k.match(validName) ? k : `'${k}'`
         let start = `${this.indentFor(1)}${name}: `
         let content = this.declareObject(obj[k])
 
