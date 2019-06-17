@@ -1,5 +1,4 @@
-import { o as functionalComponent } from '../../chunks/a38114fa.js';
-import '../../chunks/1b6c0039.js';
+import { n as functionalComponent } from '../../chunks/fbe932e6.js';
 import 'vue';
 
 const props = {

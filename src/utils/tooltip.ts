@@ -1,0 +1,1076 @@
+import Popper, { PopperOptions, Placement, Boundary, Behavior, Data } from 'popper.js'
+import BvEvent from './bv-event'
+import noop from './noop'
+import { from as arrayFrom } from './array'
+import {
+  closest,
+  select,
+  isVisible,
+  isDisabled,
+  getCS,
+  addClass,
+  removeClass,
+  hasClass,
+  setAttr,
+  removeAttr,
+  getAttr,
+  eventOn,
+  eventOff
+} from './dom'
+import { isFunction, isNull, isNumber, isString, isUndefined } from './inspect'
+import { Dict, Primitive } from './types'
+import Vue, { VueElement, VueExtended } from './vue'
+import { isObject } from './object'
+
+export interface ToolTipConfig {
+  animation: boolean
+  template: string
+  trigger: string
+  title: string
+  delay: number | { show: number; hide: number }
+  html: boolean
+  placement: Placement
+  offset: number
+  arrowPadding: number | string
+  container: boolean | string
+  fallbackPlacement: Behavior
+  callbacks: Dict<Function>
+  boundary: HTMLElement | Boundary
+  boundaryPadding: number
+  content: string
+}
+
+const NAME = 'tooltip'
+const CLASS_PREFIX = 'bs-tooltip'
+const BS_CLASS_PREFIX_REGEX = new RegExp(`\\b${CLASS_PREFIX}\\S+`, 'g')
+
+const TRANSITION_DURATION = 150
+
+// Modal $root hidden event
+const MODAL_CLOSE_EVENT = 'bv::modal::hidden'
+// Modal container for appending tooltip/popover
+const MODAL_CLASS = '.modal-content'
+
+const AttachmentMap: Dict<string> = {
+  AUTO: 'auto',
+  TOP: 'top',
+  RIGHT: 'right',
+  BOTTOM: 'bottom',
+  LEFT: 'left',
+  TOPLEFT: 'top',
+  TOPRIGHT: 'top',
+  RIGHTTOP: 'right',
+  RIGHTBOTTOM: 'right',
+  BOTTOMLEFT: 'bottom',
+  BOTTOMRIGHT: 'bottom',
+  LEFTTOP: 'left',
+  LEFTBOTTOM: 'left'
+}
+
+const OffsetMap: Dict<any> = {
+  AUTO: 0,
+  TOPLEFT: -1,
+  TOP: 0,
+  TOPRIGHT: +1,
+  RIGHTTOP: -1,
+  RIGHT: 0,
+  RIGHTBOTTOM: +1,
+  BOTTOMLEFT: -1,
+  BOTTOM: 0,
+  BOTTOMRIGHT: +1,
+  LEFTTOP: -1,
+  LEFT: 0,
+  LEFTBOTTOM: +1
+}
+
+const HoverState = {
+  SHOW: 'show',
+  OUT: 'out'
+}
+
+const ClassName = {
+  FADE: 'fade',
+  SHOW: 'show'
+}
+
+const Selector = {
+  TOOLTIP: '.tooltip',
+  TOOLTIP_INNER: '.tooltip-inner',
+  ARROW: '.arrow'
+}
+
+const Defaults: ToolTipConfig = {
+  animation: true,
+  template:
+    '<div class="tooltip" role="tooltip">' +
+    '<div class="arrow"></div>' +
+    '<div class="tooltip-inner"></div>' +
+    '</div>',
+  trigger: 'hover focus',
+  title: '',
+  delay: 0,
+  html: false,
+  placement: 'top',
+  offset: 0,
+  arrowPadding: 6,
+  container: false,
+  fallbackPlacement: 'flip',
+  callbacks: {},
+  boundary: 'scrollParent',
+  boundaryPadding: 5,
+  content: ''
+}
+
+// Transition event names
+const TransitionEndEvents: Dict<string[]> = {
+  WebkitTransition: ['webkitTransitionEnd'],
+  MozTransition: ['transitionend'],
+  OTransition: ['otransitionend', 'oTransitionEnd'],
+  transition: ['transitionend']
+}
+
+// Options for Native Event Listeners (since we never call preventDefault)
+const EvtOpts = { passive: true, capture: false }
+
+// Client-side tip ID counter for aria-describedby attribute
+// Each tooltip requires a unique client side ID
+let NEXTID = 1
+/* istanbul ignore next */
+const generateId = (name: string): string => `__BV_${name}_${NEXTID++}__`
+
+/*
+ * ToolTip class definition
+ */
+class ToolTip {
+  private ['constructor']!: typeof ToolTip
+
+  public $isEnabled: boolean | null = true
+  public $fadeTimeout?: number = undefined
+  public $hoverTimeout?: number = undefined
+  public $visibleInterval?: number = undefined
+  public $hoverState: string | null = ''
+  public $activeTrigger: Dict<boolean> = {}
+  public $popper: Popper | null = null
+  public $element: HTMLElement | null
+  public $tip: null | HTMLElement = null
+  public $id: string | null
+  public $root: null | VueExtended
+  public $routeWatcher: (() => void) | null = null
+
+  public $forceHide: null | (() => void) = this.forceHide.bind(this)
+  public $doHide: null | ((id: string) => void) = this.doHide.bind(this)
+  public $doShow: null | ((id: string) => void) = this.doShow.bind(this)
+  public $doDisable: null | ((id: string) => void) = this.doDisable.bind(this)
+  public $doEnable: null | ((id: string) => void) = this.doEnable.bind(this)
+  public _noop: null | (() => void) = noop.bind(this)
+
+  public $config: ToolTipConfig | null = null
+
+  // Main constructor
+  public constructor(element: HTMLElement, config: Partial<ToolTipConfig>, $root: VueExtended) {
+    // New tooltip object
+    this.$element = element
+    this.$id = generateId(this.constructor.NAME)
+    this.$root = $root || null
+    // Set the configuration
+    this.updateConfig(config)
+  }
+
+  // NOTE: Overridden by PopOver class
+  public static get Default(): ToolTipConfig {
+    return Defaults
+  }
+
+  // NOTE: Overridden by PopOver class
+  public static get NAME(): string {
+    return NAME
+  }
+
+  // Update config
+  public updateConfig(config: Partial<ToolTipConfig>): void {
+    // Merge config into defaults. We use "this" here because PopOver overrides Default
+    let updatedConfig = { ...this.constructor.Default, ...config }
+
+    // Sanitize delay
+    if (config.delay && isNumber(config.delay)) {
+      /* istanbul ignore next */
+      updatedConfig.delay = {
+        show: config.delay,
+        hide: config.delay
+      }
+    }
+
+    // Title for tooltip and popover
+    if (config.title && isNumber(config.title)) {
+      /* istanbul ignore next */
+      updatedConfig.title = config.title.toString()
+    }
+
+    // Content only for popover
+    if (config.content && isNumber(config.content)) {
+      /* istanbul ignore next */
+      updatedConfig.content = config.content.toString()
+    }
+
+    // Hide element original title if needed
+    this.fixTitle()
+    // Update the config
+    this.$config = updatedConfig
+    // Stop/Restart listening
+    this.unListen()
+    this.listen()
+  }
+
+  // Destroy this instance
+  public destroy(): void {
+    // Stop listening to trigger events
+    this.unListen()
+    // Disable while open listeners/watchers
+    this.setWhileOpenListeners(false)
+    // Clear any timeouts
+    clearTimeout(this.$hoverTimeout)
+    this.$hoverTimeout = undefined
+    clearTimeout(this.$fadeTimeout)
+    this.$fadeTimeout = undefined
+    // Remove popper
+    if (this.$popper) {
+      this.$popper.destroy()
+    }
+    this.$popper = null
+    // Remove tip from document
+    if (this.$tip && this.$tip.parentElement) {
+      this.$tip.parentElement.removeChild(this.$tip)
+    }
+    this.$tip = null
+    // Null out other properties
+    this.$id = null
+    this.$isEnabled = null
+    this.$root = null
+    this.$element = null
+    this.$config = null
+    this.$hoverState = null
+    this.$activeTrigger = {}
+    this.$forceHide = null
+    this.$doHide = null
+    this.$doShow = null
+    this.$doDisable = null
+    this.$doEnable = null
+  }
+
+  public enable(): void {
+    // Create a non-cancelable BvEvent
+    const enabledEvt = new BvEvent('enabled', {
+      cancelable: false,
+      target: this.$element,
+      relatedTarget: null
+    })
+    this.$isEnabled = true
+    this.emitEvent(enabledEvt)
+  }
+
+  public disable(): void {
+    // Create a non-cancelable BvEvent
+    const disabledEvt = new BvEvent('disabled', {
+      cancelable: false,
+      target: this.$element,
+      relatedTarget: null
+    })
+    this.$isEnabled = false
+    this.emitEvent(disabledEvt)
+  }
+
+  // Click toggler
+  public toggle(event: BvEvent): void {
+    if (!this.$isEnabled) {
+      /* istanbul ignore next */
+      return
+    }
+    /* istanbul ignore else */
+    if (event) {
+      this.$activeTrigger.click = !this.$activeTrigger.click
+
+      if (this.isWithActiveTrigger()) {
+        this.enter(null)
+      } else {
+        this.leave(null)
+      }
+    } else {
+      if (hasClass(this.getTipElement(), ClassName.SHOW)) {
+        this.leave(null)
+      } else {
+        this.enter(null)
+      }
+    }
+  }
+
+  // Show tooltip
+  public show(): void {
+    if (!document.body.contains(this.$element) || !isVisible(this.$element)) {
+      // If trigger element isn't in the DOM or is not visible
+      return
+    }
+    // Build tooltip element (also sets this.$tip)
+    const tip = this.getTipElement()
+    this.fixTitle()
+    this.setContent(tip)
+    if (!this.isWithContent(tip)) {
+      // If no content, don't bother showing
+      /* istanbul ignore next */
+      this.$tip = null
+      /* istanbul ignore next */
+      return
+    }
+
+    // Set ID on tip and aria-describedby on element
+    setAttr(tip, 'id', this.$id || '')
+    this.addAriaDescribedby()
+
+    // Set animation on or off
+    if (!this.$config) return
+    if (this.$config.animation) {
+      addClass(tip, ClassName.FADE)
+    } else {
+      removeClass(tip, ClassName.FADE)
+    }
+
+    const placement = this.getPlacement()
+    const attachment = this.constructor.getAttachment(placement)
+    this.addAttachmentClass(attachment)
+
+    // Create a cancelable BvEvent
+    const showEvt = new BvEvent('show', {
+      cancelable: true,
+      target: this.$element,
+      relatedTarget: tip
+    })
+    this.emitEvent(showEvt)
+    if (showEvt.defaultPrevented) {
+      // Don't show if event cancelled
+      this.$tip = null
+      return
+    }
+
+    // Insert tooltip if needed
+    const container = this.getContainer()
+    if (!document.body.contains(tip)) {
+      container.appendChild(tip)
+    }
+
+    // Refresh popper
+    this.removePopper()
+    this.$popper = this.$element
+      ? new Popper(this.$element, tip, this.getPopperConfig(placement, tip))
+      : null
+
+    // Transitionend callback
+    const complete = (): void => {
+      if (this.$config && this.$config.animation) {
+        this.fixTransition(tip)
+      }
+      const prevHoverState = this.$hoverState
+      this.$hoverState = null
+      if (prevHoverState === HoverState.OUT) {
+        this.leave(null)
+      }
+      // Create a non-cancelable BvEvent
+      const shownEvt = new BvEvent('shown', {
+        cancelable: false,
+        target: this.$element,
+        relatedTarget: tip
+      })
+      this.emitEvent(shownEvt)
+    }
+
+    // Enable while open listeners/watchers
+    this.setWhileOpenListeners(true)
+
+    // Show tip
+    addClass(tip, ClassName.SHOW)
+
+    // Start the transition/animation
+    this.transitionOnce(tip, complete)
+  }
+
+  // Handler for periodic visibility check
+  public visibleCheck(on: boolean): void {
+    clearInterval(this.$visibleInterval)
+    this.$visibleInterval = undefined
+    if (on) {
+      this.$visibleInterval = setInterval((): void => {
+        const tip = this.$tip
+        if (tip && !isVisible(this.$element) && hasClass(tip, ClassName.SHOW)) {
+          // Element is no longer visible, so force-hide the tooltip
+          this.forceHide()
+        }
+      }, 100)
+    }
+  }
+
+  public setWhileOpenListeners(on: boolean): void {
+    // Modal close events
+    this.setModalListener(on)
+    // Periodic $element visibility check
+    // For handling when tip is in <keepalive>, tabs, carousel, etc
+    this.visibleCheck(on)
+    // Route change events
+    this.setRouteWatcher(on)
+    // On-touch start listeners
+    this.setOnTouchStartListener(on)
+    if (on && this.$config && /(focus|blur)/.test(this.$config.trigger as string)) {
+      // If focus moves between trigger element and tip container, don't close
+      eventOn(this.$tip, 'focusout', this, EvtOpts)
+    } else {
+      eventOff(this.$tip, 'focusout', this, EvtOpts)
+    }
+  }
+
+  // Force hide of tip (internal method)
+  public forceHide(): void {
+    if (!this.$tip || !hasClass(this.$tip, ClassName.SHOW)) {
+      /* istanbul ignore next */
+      return
+    }
+    // Disable while open listeners/watchers
+    this.setWhileOpenListeners(false)
+    // Clear any hover enter/leave event
+    clearTimeout(this.$hoverTimeout)
+    this.$hoverTimeout = undefined
+    this.$hoverState = ''
+    // Hide the tip
+    this.hide(null, true)
+  }
+
+  // Hide tooltip
+  public hide(callback?: null | (() => void), force?: boolean): void {
+    const tip = this.$tip
+    if (!tip) {
+      /* istanbul ignore next */
+      return
+    }
+
+    // Create a cancelable BvEvent
+    const hideEvt = new BvEvent('hide', {
+      // We disable cancelling if force is true
+      cancelable: !force,
+      target: this.$element,
+      relatedTarget: tip
+    })
+    this.emitEvent(hideEvt)
+    if (hideEvt.defaultPrevented) {
+      // Don't hide if event cancelled
+      return
+    }
+
+    // Transitionend callback
+    const complete = (): void => {
+      if (this.$hoverState !== HoverState.SHOW && tip.parentNode) {
+        // Remove tip from DOM, and force recompile on next show
+        tip.parentNode.removeChild(tip)
+        this.removeAriaDescribedby()
+        this.removePopper()
+        this.$tip = null
+      }
+      if (callback) {
+        callback()
+      }
+      // Create a non-cancelable BvEvent
+      const hiddenEvt = new BvEvent('hidden', {
+        cancelable: false,
+        target: this.$element,
+        relatedTarget: null
+      })
+      this.emitEvent(hiddenEvt)
+    }
+
+    // Disable while open listeners/watchers
+    this.setWhileOpenListeners(false)
+
+    // If forced close, disable animation
+    if (force) {
+      removeClass(tip, ClassName.FADE)
+    }
+    // Hide tip
+    removeClass(tip, ClassName.SHOW)
+
+    this.$activeTrigger.click = false
+    this.$activeTrigger.focus = false
+    this.$activeTrigger.hover = false
+
+    // Start the hide transition
+    this.transitionOnce(tip, complete)
+
+    this.$hoverState = ''
+  }
+
+  public emitEvent(evt: BvEvent): void {
+    const evtName = evt.type
+    if (this.$root && this.$root.$emit) {
+      // Emit an event on $root
+      this.$root.$emit(`bv::${this.constructor.NAME}::${evtName}`, evt)
+    }
+    const callbacks: Dict<Function> = this.$config
+      ? (this.$config.callbacks as Dict<Function>) || {}
+      : {}
+    if (callbacks && isFunction(callbacks[evtName])) {
+      callbacks[evtName](evt)
+    }
+  }
+
+  public getContainer(): HTMLElement {
+    const container: string | boolean = this.$config ? (this.$config.container as string) : false
+    const body = document.body
+    // If we are in a modal, we append to the modal instead of body,
+    // unless a container is specified
+    return container === false
+      ? closest(MODAL_CLASS, this.$element) || body
+      : select(container, body) || body
+  }
+
+  // Will be overridden by PopOver if needed
+  public addAriaDescribedby(): void {
+    // Add aria-describedby on trigger element, without removing any other IDs
+    let desc = getAttr(this.$element, 'aria-describedby') || ''
+    desc = desc
+      .split(/\s+/)
+      .concat(this.$id || '')
+      .join(' ')
+      .trim()
+    setAttr(this.$element, 'aria-describedby', desc)
+  }
+
+  // Will be overridden by PopOver if needed
+  public removeAriaDescribedby(): void {
+    let desc = getAttr(this.$element, 'aria-describedby') || ''
+    desc = desc
+      .split(/\s+/)
+      .filter((d): boolean => d !== (this.$id || ''))
+      .join(' ')
+      .trim()
+    if (desc) {
+      /* istanbul ignore next */
+      setAttr(this.$element, 'aria-describedby', desc)
+    } else {
+      removeAttr(this.$element, 'aria-describedby')
+    }
+  }
+
+  public removePopper(): void {
+    if (this.$popper) {
+      this.$popper.destroy()
+    }
+    this.$popper = null
+  }
+
+  public transitionOnce(tip: HTMLElement, complete: Function): void {
+    const transEvents: string[] = this.getTransitionEndEvents()
+    let called = false
+    clearTimeout(this.$fadeTimeout)
+    this.$fadeTimeout = undefined
+    const fnOnce = (): void => {
+      if (called) {
+        /* istanbul ignore next */
+        return
+      }
+      called = true
+      clearTimeout(this.$fadeTimeout)
+      this.$fadeTimeout = undefined
+      transEvents.forEach((evtName): void => {
+        eventOff(tip, evtName, fnOnce, EvtOpts)
+      })
+      // Call complete callback
+      complete()
+    }
+    if (hasClass(tip, ClassName.FADE)) {
+      transEvents.forEach((evtName): void => {
+        eventOn(tip, evtName, fnOnce, EvtOpts)
+      })
+      // Fallback to setTimeout()
+      this.$fadeTimeout = setTimeout(fnOnce, TRANSITION_DURATION)
+    } else {
+      fnOnce()
+    }
+  }
+
+  // What transitionend event(s) to use? (returns array of event names)
+  public getTransitionEndEvents(): string[] {
+    for (const name in TransitionEndEvents) {
+      if (this.$element && !isUndefined(this.$element.style.getPropertyValue(name))) {
+        return TransitionEndEvents[name]
+      }
+    }
+    // Fallback
+    /* istanbul ignore next */
+    return []
+  }
+
+  /* istanbul ignore next */
+  public update(): void {
+    if (!isNull(this.$popper)) {
+      this.$popper.scheduleUpdate()
+    }
+  }
+
+  // NOTE: Overridden by PopOver class
+  public isWithContent(tip: HTMLElement): boolean {
+    tip = tip || this.$tip
+    if (!tip) {
+      /* istanbul ignore next */
+      return false
+    }
+    return Boolean(((select(Selector.TOOLTIP_INNER, tip) || {}) as HTMLElement).innerHTML)
+  }
+
+  // NOTE: Overridden by PopOver class
+  public addAttachmentClass(attachment: string): void {
+    addClass(this.getTipElement(), `${CLASS_PREFIX}-${attachment}`)
+  }
+
+  public getTipElement(): HTMLElement {
+    if (!this.$tip && this.$config) {
+      // Try and compile user supplied template, or fallback to default template
+      this.$tip =
+        this.compileTemplate(this.$config.template) ||
+        this.compileTemplate(this.constructor.Default.template)
+    }
+    // Add tab index so tip can be focused, and to allow it to be
+    // set as relatedTarget in focusin/out events
+    ;(this.$tip as HTMLElement).tabIndex = -1
+    return this.$tip as HTMLElement
+  }
+
+  public compileTemplate(html: unknown): HTMLElement | null {
+    if (!html || !isString(html)) {
+      /* istanbul ignore next */
+      return null
+    }
+    let div: HTMLElement | null = document.createElement('div')
+    div.innerHTML = html.trim()
+    const node = div.firstElementChild ? div.removeChild(div.firstElementChild) : null
+    div = null
+    return node as HTMLElement
+  }
+
+  // NOTE: Overridden by PopOver class
+  public setContent(tip: HTMLElement): void {
+    this.setElementContent(select(Selector.TOOLTIP_INNER, tip), this.getTitle())
+    removeClass(tip, ClassName.FADE)
+    removeClass(tip, ClassName.SHOW)
+  }
+
+  public setElementContent(container: HTMLElement | null, content: HTMLElement | string): void {
+    if (!container) {
+      // If container element doesn't exist, just return
+      /* istanbul ignore next */
+      return
+    }
+    const allowHtml = this.$config ? this.$config.html : false
+    if (isObject(content) && content.nodeType) {
+      // Content is a DOM node
+      if (allowHtml) {
+        if (content.parentElement !== container) {
+          container.innerHTML = ''
+          container.appendChild(content)
+        }
+      } else {
+        /* istanbul ignore next */
+        container.innerText = content.innerText
+      }
+    } else {
+      // We have a plain HTML string or Text
+      container[allowHtml ? 'innerHTML' : 'innerText'] = content as string
+    }
+  }
+
+  // NOTE: Overridden by PopOver class
+  public getTitle(): string {
+    let title: string = this.$config && this.$config.title ? (this.$config.title as string) : ''
+    if (isFunction(title)) {
+      // Call the function to get the title value
+      /* istanbul ignore next */
+      title = title(this.$element)
+    }
+    if (isObject(title) && title.nodeType && !title.innerHTML.trim()) {
+      // We have a DOM node, but without inner content,
+      // so just return empty string
+      /* istanbul ignore next */
+      title = ''
+    }
+    if (isString(title)) {
+      title = title.trim()
+    }
+    if (!title) {
+      // If an explicit title is not given, try element's title attributes
+      title = getAttr(this.$element, 'title') || getAttr(this.$element, 'data-original-title') || ''
+      title = title.trim()
+    }
+
+    return title
+  }
+
+  public static getAttachment(placement: string): Placement {
+    return AttachmentMap[placement.toUpperCase()] as Placement
+  }
+
+  public listen(): void {
+    const triggers =
+      this.$config && this.$config.trigger
+        ? (this.$config.trigger as string).trim().split(/\s+/)
+        : []
+    const el = this.$element
+
+    // Listen for global show/hide events
+    this.setRootListener(true)
+
+    // Using 'this' as the handler will get automatically directed to
+    // this.handleEvent and maintain our binding to 'this'
+    triggers.forEach((trigger: string): void => {
+      if (trigger === 'click') {
+        eventOn(el, 'click', this, EvtOpts)
+      } else if (trigger === 'focus') {
+        eventOn(el, 'focusin', this, EvtOpts)
+        eventOn(el, 'focusout', this, EvtOpts)
+      } else if (trigger === 'blur') {
+        // Used to close $tip when element looses focus
+        eventOn(el, 'focusout', this, EvtOpts)
+      } else if (trigger === 'hover') {
+        eventOn(el, 'mouseenter', this, EvtOpts)
+        eventOn(el, 'mouseleave', this, EvtOpts)
+      }
+    }, this)
+  }
+
+  public unListen(): void {
+    const events = ['click', 'focusin', 'focusout', 'mouseenter', 'mouseleave']
+    // Using "this" as the handler will get automatically directed to this.handleEvent
+    events.forEach((evt): void => {
+      eventOff(this.$element, evt, this as EventListenerObject, EvtOpts)
+    }, this)
+
+    // Stop listening for global show/hide/enable/disable events
+    this.setRootListener(false)
+  }
+
+  public handleEvent(e: BvEvent & Event): void {
+    // This special method allows us to use "this" as the event handlers
+    if (isDisabled(this.$element as HTMLInputElement)) {
+      // If disabled, don't do anything. Note: If tip is shown before element gets
+      // disabled, then tip not close until no longer disabled or forcefully closed.
+      /* istanbul ignore next */
+      return
+    }
+    if (!this.$isEnabled) {
+      // If not enable
+      return
+    }
+    const type = e.type
+    const target = e.target
+    const relatedTarget = e.relatedTarget
+    const $element = this.$element
+    const $tip = this.$tip
+    if (type === 'click') {
+      this.toggle(e)
+    } else if (type === 'focusin' || type === 'mouseenter') {
+      this.enter(e)
+    } else if (type === 'focusout') {
+      // target is the element which is loosing focus
+      // and relatedTarget is the element gaining focus
+      if ($tip && $element && $element.contains(target) && $tip.contains(relatedTarget)) {
+        // If focus moves from $element to $tip, don't trigger a leave
+        /* istanbul ignore next */
+        return
+      }
+      if ($tip && $element && $tip.contains(target) && $element.contains(relatedTarget)) {
+        // If focus moves from $tip to $element, don't trigger a leave
+        /* istanbul ignore next */
+        return
+      }
+      /* istanbul ignore next: difficult to test */
+      if ($tip && $tip.contains(target) && $tip.contains(relatedTarget)) {
+        // If focus moves within $tip, don't trigger a leave
+        return
+      }
+      /* istanbul ignore next: difficult to test */
+      if ($element && $element.contains(target) && $element.contains(relatedTarget)) {
+        // If focus moves within $element, don't trigger a leave
+        return
+      }
+      // Otherwise trigger a leave
+      this.leave(e)
+    } else if (type === 'mouseleave') {
+      this.leave(e)
+    }
+  }
+
+  /* istanbul ignore next */
+  public setRouteWatcher(on: boolean): void {
+    if (on) {
+      this.setRouteWatcher(false)
+      if (this.$root && Boolean(this.$root.$route)) {
+        this.$routeWatcher = this.$root.$watch('$route', (newVal, oldVal): void => {
+          if (newVal === oldVal) {
+            return
+          }
+          // If route has changed, we force hide the tooltip/popover
+          this.forceHide()
+        })
+      }
+    } else {
+      if (this.$routeWatcher) {
+        // Cancel the route watcher by calling the stored reference
+        this.$routeWatcher()
+        this.$routeWatcher = null
+      }
+    }
+  }
+
+  /* istanbul ignore next */
+  public setModalListener(on: boolean): void {
+    const modal = closest(MODAL_CLASS, this.$element)
+    if (!modal) {
+      // If we are not in a modal, don't worry. be happy
+      return
+    }
+    // We can listen for modal hidden events on $root
+    if (this.$root) {
+      this.$root[on ? '$on' : '$off'](MODAL_CLOSE_EVENT, this.$forceHide as (() => void))
+    }
+  }
+
+  public setRootListener(on: boolean): void {
+    // Listen for global 'bv::{hide|show}::{tooltip|popover}' hide request event
+    if (this.$root) {
+      this.$root[on ? '$on' : '$off'](`bv::hide::${this.constructor.NAME}`, this
+        .$doHide as (() => void))
+      this.$root[on ? '$on' : '$off'](`bv::show::${this.constructor.NAME}`, this
+        .$doShow as (() => void))
+      this.$root[on ? '$on' : '$off'](`bv::disable::${this.constructor.NAME}`, this
+        .$doDisable as (() => void))
+      this.$root[on ? '$on' : '$off'](`bv::enable::${this.constructor.NAME}`, this
+        .$doEnable as (() => void))
+    }
+  }
+
+  public doHide(id: string): void {
+    // Programmatically hide tooltip or popover
+    if (!id) {
+      // Close all tooltips or popovers
+      this.forceHide()
+    } else if (this.$element && this.$element.id && this.$element.id === id) {
+      // Close this specific tooltip or popover
+      this.hide()
+    }
+  }
+
+  public doShow(id: string): void {
+    // Programmatically show tooltip or popover
+    if (!id) {
+      // Open all tooltips or popovers
+      this.show()
+    } else if (id && this.$element && this.$element.id && this.$element.id === id) {
+      // Show this specific tooltip or popover
+      this.show()
+    }
+  }
+
+  public doDisable(id: string): void {
+    // Programmatically disable tooltip or popover
+    if (!id) {
+      // Disable all tooltips or popovers
+      this.disable()
+    } else if (this.$element && this.$element.id && this.$element.id === id) {
+      // Disable this specific tooltip or popover
+      this.disable()
+    }
+  }
+
+  public doEnable(id: string): void {
+    // Programmatically enable tooltip or popover
+    if (!id) {
+      // Enable all tooltips or popovers
+      this.enable()
+    } else if (this.$element && this.$element.id && this.$element.id === id) {
+      // Enable this specific tooltip or popover
+      this.enable()
+    }
+  }
+
+  public setOnTouchStartListener(on: boolean): void {
+    // If this is a touch-enabled device we add extra
+    // empty mouseover listeners to the body's immediate children
+    // Only needed because of broken event delegation on iOS
+    // https://www.quirksmode.org/blog/archives/2014/02/mouse_event_bub.html
+    if ('ontouchstart' in document.documentElement) {
+      /* istanbul ignore next: JSDOM does not support 'ontouchstart' event */
+      arrayFrom(document.body.children).forEach((el): void => {
+        if (on) {
+          eventOn(el, 'mouseover', this._noop as (() => void))
+        } else {
+          eventOff(el, 'mouseover', this._noop as (() => void))
+        }
+      })
+    }
+  }
+
+  public fixTitle(): void {
+    const el = this.$element
+    if (getAttr(el, 'title') || !isString(getAttr(el, 'data-original-title'))) {
+      setAttr(el, 'data-original-title', getAttr(el, 'title') || '')
+      setAttr(el, 'title', '')
+    }
+  }
+
+  // Enter handler
+  public enter(e: Event | null): void {
+    if (e) {
+      this.$activeTrigger[e.type === 'focusin' ? 'focus' : 'hover'] = true
+    }
+    if (hasClass(this.getTipElement(), ClassName.SHOW) || this.$hoverState === HoverState.SHOW) {
+      this.$hoverState = HoverState.SHOW
+      return
+    }
+    clearTimeout(this.$hoverTimeout)
+    this.$hoverState = HoverState.SHOW
+    let config = this.$config as ToolTipConfig
+    if (config && (!config.delay || !(config.delay as { show: number }).show)) {
+      this.show()
+      return
+    }
+    this.$hoverTimeout = setTimeout(
+      (): void => {
+        if (this.$hoverState === HoverState.SHOW) {
+          this.show()
+        }
+      },
+      this.$config && this.$config.delay
+        ? ((this.$config.delay as Dict<Primitive>).show as number)
+        : undefined
+    )
+  }
+
+  // Leave handler
+  public leave(e: Event | null): void {
+    let config = this.$config as ToolTipConfig
+    if (e) {
+      this.$activeTrigger[e.type === 'focusout' ? 'focus' : 'hover'] = false
+      if (e.type === 'focusout' && /blur/.test(config.trigger)) {
+        // Special case for `blur`: we clear out the other triggers
+        this.$activeTrigger.click = false
+        this.$activeTrigger.hover = false
+      }
+    }
+    if (this.isWithActiveTrigger()) {
+      return
+    }
+    clearTimeout(this.$hoverTimeout)
+    this.$hoverState = HoverState.OUT
+    if (!config.delay || (config.delay && !(config.delay as { hide: number }).hide)) {
+      this.hide()
+      return
+    }
+    this.$hoverTimeout = setTimeout((): void => {
+      if (this.$hoverState === HoverState.OUT) {
+        this.hide()
+      }
+    }, (config.delay as { hide: number }).hide)
+  }
+
+  public getPopperConfig(placement: Placement, tip: HTMLElement | null): PopperOptions {
+    let config = this.$config as ToolTipConfig
+    return {
+      placement: this.constructor.getAttachment(placement),
+      modifiers: {
+        offset: { offset: this.getOffset(placement, tip) },
+        flip: { behavior: config.fallbackPlacement },
+        arrow: { element: '.arrow' },
+        preventOverflow: {
+          padding: config.boundaryPadding,
+          boundariesElement: config.boundary
+        }
+      },
+      onCreate: (data): void => {
+        // Handle flipping arrow classes
+        /* istanbul ignore next */
+        if (data.originalPlacement !== data.placement) {
+          this.handlePopperPlacementChange(data)
+        }
+      },
+      onUpdate: (data): void => {
+        // Handle flipping arrow classes
+        /* istanbul ignore next */
+        this.handlePopperPlacementChange(data)
+      }
+    }
+  }
+
+  /* istanbul ignore next */
+  public getOffset(placement: Placement, tip: HTMLElement | null): number | string {
+    let config = this.$config as ToolTipConfig
+    if (!config || !config.offset) {
+      const arrow = select(Selector.ARROW, tip)
+      const arrowOffset =
+        parseFloat(getCS(arrow).width || '0') + parseFloat(config.arrowPadding as string)
+      switch (OffsetMap[placement.toUpperCase()]) {
+        case +1:
+          return `+50%p - ${arrowOffset}px`
+        case -1:
+          return `-50%p + ${arrowOffset}px`
+        default:
+          return 0
+      }
+    }
+    return config.offset
+  }
+
+  public getPlacement(): Placement {
+    let config = this.$config as ToolTipConfig
+    const placement = config.placement
+    if (isFunction(placement)) {
+      /* istanbul ignore next */
+      return placement.call(this, this.$tip, this.$element)
+    }
+    return placement
+  }
+
+  public isWithActiveTrigger(): boolean {
+    for (const trigger in this.$activeTrigger) {
+      if (this.$activeTrigger[trigger]) {
+        return true
+      }
+    }
+    return false
+  }
+
+  // NOTE: Overridden by PopOver class
+  /* istanbul ignore next */
+  public cleanTipClass(): void {
+    const tip = this.getTipElement()
+    const tabClass = tip.className.match(BS_CLASS_PREFIX_REGEX)
+    if (!isNull(tabClass) && tabClass.length > 0) {
+      tabClass.forEach((cls): void => {
+        removeClass(tip, cls)
+      })
+    }
+  }
+
+  /* istanbul ignore next */
+  public handlePopperPlacementChange(data: Data): void {
+    this.cleanTipClass()
+    this.addAttachmentClass(this.constructor.getAttachment(data.placement))
+  }
+
+  /* istanbul ignore next */
+  public fixTransition(tip: HTMLElement): void {
+    let config = this.$config as ToolTipConfig
+    const initConfigAnimation = config.animation || false
+    if (!isNull(getAttr(tip, 'x-placement'))) {
+      return
+    }
+    removeClass(tip, ClassName.FADE)
+    config.animation = false
+    this.hide()
+    this.show()
+    config.animation = initConfigAnimation
+  }
+}
+
+export default ToolTip

@@ -38,6 +38,7 @@ devDependencies:
   jest-serializer-vue: 2.0.2
   jest-transform-stub: 2.0.0
   jest-watch-typeahead: 0.3.1
+  popper.js: 1.15.0
   postcss: 7.0.17
   prettier: 1.18.2
   rollup-plugin-commonjs: 10.0.0
@@ -8021,6 +8022,10 @@ packages:
     dev: true
     resolution:
       integrity: sha512-2qHaIQr2VLRFoxe2nASzsV6ef4yOOH+Fi9FBOVH6cqeSgUnoyySPZkxzLuzd+RYOQTRpROA0ztTMqxROKSb/nA==
+  /popper.js/1.15.0:
+    dev: true
+    resolution:
+      integrity: sha512-w010cY1oCUmI+9KwwlWki+r5jxKfTFDVoadl7MSrIujHU5MJ5OR6HTDj6Xo8aoR/QsA56x8jKjA59qGH4ELtrA==
   /portfinder/1.0.20:
     dependencies:
       async: 1.5.2
@@ -11519,6 +11524,7 @@ specifiers:
   jest-serializer-vue: ^2.0.2
   jest-transform-stub: ^2.0.0
   jest-watch-typeahead: ^0.3.1
+  popper.js: ^1.15.0
   postcss: ^7.0.17
   prettier: ^1.18.2
   rollup-plugin-commonjs: ^10.0.0

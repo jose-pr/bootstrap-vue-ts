@@ -1,16 +1,16 @@
-import './chunks/a38114fa.js';
-import { T as TestPartial1 } from './chunks/1b6c0039.js';
+import { T as TestPartial1 } from './chunks/fbe932e6.js';
 import 'vue';
-import './chunks/8ccf66f8.js';
-import { i as installFactory, s as setConfig, v as vueUse } from './chunks/a31a6b53.js';
+import './chunks/04377600.js';
+import { i as installFactory, s as setConfig, v as vueUse } from './chunks/ca461e24.js';
 import './chunks/cc02fd47.js';
-import './chunks/fe59a6ba.js';
-import './chunks/19bc14e4.js';
-import './chunks/20b2115e.js';
-import { c as componentsPlugin, d as directivesPlugin } from './chunks/a3dbdf34.js';
+import './chunks/ef49def3.js';
+import './chunks/9a621529.js';
+import './chunks/e2797630.js';
+import './chunks/cbc00e7e.js';
+import { C as ComponentsPlugin, D as DirectivesPlugin } from './chunks/bb55e737.js';
 
 // BootstrapVue installer
-const install = installFactory({ plugins: { componentsPlugin, directivesPlugin } });
+const install = installFactory({ plugins: { ComponentsPlugin, DirectivesPlugin } });
 const BootstrapVue = {
     install: install,
     setConfig: setConfig

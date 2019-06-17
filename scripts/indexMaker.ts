@@ -128,9 +128,10 @@ interface pluginType {
   haveConfig: boolean
 }
 async function ProcessPlugins(types: pluginType[]) {
-  let plugins: plugin[] = []
+  let allplugins: plugin[] = []
 
   for (let type of types) {
+    let plugins: plugin[] = []
     console.log(`Process ${type.namePlurar} Plugins`)
     let filenames = await lsDir(type.dir)
     let index = new TSWritter()
@@ -148,7 +149,11 @@ async function ProcessPlugins(types: pluginType[]) {
     index.ImportFromModule(`../core/BvPlugin`, [`installFactory`, 'BvPlugin'])
     if (type.haveConfig) {
       plugins.forEach(p =>
-        index.ImportFromModule(`./${p.filename}`, p.components.map(c => `${c.name}Config`), p.name)
+        index.ImportFromModule(
+          `./${p.filename}`,
+          type.haveConfig ? p.components.map(c => `${c.name}Config`) : [],
+          p.name
+        )
       )
       index.Indent(
         `export interface ${type.namePlurar}Config {`,
@@ -157,6 +162,8 @@ async function ProcessPlugins(types: pluginType[]) {
           []
         )
       )
+    } else {
+      plugins.forEach(p => index.ImportDefModule({ name: p.name, path: `./${p.filename}` }))
     }
 
     index.DeclareObject(
@@ -183,9 +190,10 @@ async function ProcessPlugins(types: pluginType[]) {
     )
     plugins.forEach(p => index.ExportAllFromModules(`./${p.filename}`))
     await index.Write(getWritter(`${type.dir}/index.ts`))
+    allplugins = allplugins.concat(plugins)
   }
 
-  return plugins
+  return allplugins
 }
 
 async function ProcessUtils() {
@@ -236,7 +244,7 @@ async function run() {
     componentNameFn: n => 'v-b-' + n,
     pluginNameFn: n => 'v-b' + n + '-plugin',
     dir: `${SRC_PATH}/directives`,
-    haveConfig: true
+    haveConfig: false
   }
 
   let plugins = await ProcessPlugins([componentPluginType, directivePluginType])

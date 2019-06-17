@@ -5,6 +5,8 @@ const inputs = {
   'components/navbar/BNavbarNav': 'src/components/navbar/navbar-nav.ts',
   'components/navbar/BNavbar': 'src/components/navbar/navbar.ts',
   'directives/VBmodalPlugin': './src/directives/modal/index.ts',
-  'directives/modal/VBModal': 'src/directives/modal/modal.ts'
+  'directives/modal/VBModal': 'src/directives/modal/modal.ts',
+  'directives/VBpopoverPlugin': './src/directives/popover/index.ts',
+  'directives/popover/VBPopover': 'src/directives/popover/popover.ts'
 }
 export default inputs

@@ -1,13 +1,13 @@
 import { installFactory, BvPlugin } from './core/BvPlugin'
 import { setConfig } from './core/BvConfig'
-import { componentsPlugin, ComponentsConfig } from './components'
-import { directivesPlugin } from './directives'
+import { ComponentsPlugin, ComponentsConfig } from './components'
+import { DirectivesPlugin } from './directives'
 import BVConfigPlugin from './core/ConfigPlugin'
 import { PluginFunction } from './utils/vue'
 import { BvComponentConfig } from './core/BvComponent'
 
 // BootstrapVue installer
-const install = installFactory({ plugins: { componentsPlugin, directivesPlugin } })
+const install = installFactory({ plugins: { ComponentsPlugin, DirectivesPlugin } })
 
 declare global {
   type BvConfigOptions = { breakpoints?: string[] } & ComponentsConfig & BvComponentConfig

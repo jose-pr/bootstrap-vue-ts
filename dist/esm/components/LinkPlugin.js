@@ -1,20 +1,21 @@
-import '../chunks/a38114fa.js';
-import '../chunks/1b6c0039.js';
+import '../chunks/fbe932e6.js';
 import 'vue';
-import '../chunks/8ccf66f8.js';
-import { i as installFactory } from '../chunks/a31a6b53.js';
+import '../chunks/04377600.js';
+import { i as installFactory } from '../chunks/ca461e24.js';
 import '../chunks/cc02fd47.js';
-import { l as link } from '../chunks/fe59a6ba.js';
-export { o as omitLinkProps, b as pickLinkProps, a as props, p as propsFactory } from '../chunks/fe59a6ba.js';
+import { l as link } from '../chunks/ef49def3.js';
+export { o as omitLinkProps, b as pickLinkProps, a as props, p as propsFactory } from '../chunks/ef49def3.js';
 
 const LinkComponents = {
-    BLink: link,
+    BLink: link
 };
 //
 //Plugin
 //
 const LinkPlugin = {
-    install: installFactory({ components: LinkComponents })
+    install: installFactory({
+        components: LinkComponents
+    })
 };
 
 export default LinkPlugin;

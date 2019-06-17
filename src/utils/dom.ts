@@ -5,42 +5,68 @@ import { isObject } from './object'
 
 // --- Constants ---
 
+// eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
 const w = hasWindowSupport ? window : ({} as Window)
+// eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
 const d = hasDocumentSupport ? document : ({} as Document)
+// eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
 const elProto: Element = typeof Element !== 'undefined' ? Element.prototype : ({} as Element)
 
 // --- Normalization utils ---
+
+// Determine if an element is an HTML Element
+export const isElement = (el: unknown): el is HTMLElement =>
+  Boolean(el && (el as HTMLElement).nodeType === Node.ELEMENT_NODE)
 
 // See: https://developer.mozilla.org/en-US/docs/Web/API/Element/matches#Polyfill
 /* istanbul ignore next */
 export const matchesEl =
   elProto.matches || (elProto as any).msMatchesSelector || elProto.webkitMatchesSelector
 
+// Determine if an element matches a selector
+export const matches = (el: unknown, selector: string): boolean => {
+  if (!isElement(el)) {
+    return false
+  }
+  return matchesEl.call(el, selector)
+}
+
 // See: https://developer.mozilla.org/en-US/docs/Web/API/Element/closest
 /* istanbul ignore next */
 export const closestEl =
   elProto.closest ||
-  function(this: Element, sel: string) /* istanbul ignore next */ {
-    let el: Element | null = this
+  function(this: HTMLElement, sel: string): HTMLElement | null /* istanbul ignore next */ {
+    let el: HTMLElement = this
     do {
       // Use our "patched" matches function
-      if (matches(el!, sel)) {
+      if (matches(el, sel)) {
         return el
       }
-      el = el!.parentElement || (el!.parentNode as Element)
-    } while (!isNull(el) && el!.nodeType === Node.ELEMENT_NODE)
+      el = el.parentElement || (el.parentNode as HTMLElement)
+    } while (!isNull(el) && el.nodeType === Node.ELEMENT_NODE)
     return null
   }
 
 // `requestAnimationFrame()` convenience method
 // We don't have a version for cancelAnimationFrame, but we don't call it anywhere
+declare global {
+  interface Window {
+    webkitRequestAnimationFrame(cb: FrameRequestCallback): number
+    mozRequestAnimationFrame(cb: FrameRequestCallback): number
+    msRequestAnimationFrame(cb: FrameRequestCallback): number
+    oRequestAnimationFrame(cb: FrameRequestCallback): number
+    MutationObserver: MutationObs
+    WebKitMutationObserver: MutationObs
+    MozMutationObserver: MutationObs
+  }
+}
 export const requestAF =
   w.requestAnimationFrame ||
   w.webkitRequestAnimationFrame ||
-  (w as any).mozRequestAnimationFrame ||
-  (w as any).msRequestAnimationFrame ||
-  (w as any).oRequestAnimationFrame ||
-  (cb => {
+  w.mozRequestAnimationFrame ||
+  w.msRequestAnimationFrame ||
+  w.oRequestAnimationFrame ||
+  ((cb: FrameRequestCallback): number => {
     // Fallback, but not a true polyfill
     // All browsers we support (other than Opera Mini) support
     // `requestAnimationFrame()` without a polyfill
@@ -49,10 +75,7 @@ export const requestAF =
   })
 
 export const MutationObs: MutationObs =
-  (w as any).MutationObserver ||
-  (w as any).WebKitMutationObserver ||
-  (w as any).MozMutationObserver ||
-  null
+  w.MutationObserver || w.WebKitMutationObserver || w.MozMutationObserver || null
 
 interface MutationObs {
   new (callback: MutationCallback): MutationObserver
@@ -76,11 +99,11 @@ export const parseEventOptions = (
 
 // Attach an event listener to an element
 export const eventOn = (
-  el: Element | Document | Window,
+  el: Element | Document | Window | null,
   evtName: string,
-  handler: EventHandlerNonNull,
+  handler: EventListenerOrEventListenerObject,
   options?: EventListenerOptions
-) => {
+): void => {
   if (el && el.addEventListener) {
     el.addEventListener(evtName, handler, parseEventOptions(options))
   }
@@ -88,21 +111,193 @@ export const eventOn = (
 
 // Remove an event listener from an element
 export const eventOff = (
-  el: Element | Document | Window,
+  el: Element | Document | Window | null,
   evtName: string,
-  handler: EventHandlerNonNull,
+  handler: EventListenerOrEventListenerObject,
   options?: EventListenerOptions
-) => {
+): void => {
   if (el && el.removeEventListener) {
     el.removeEventListener(evtName, handler, parseEventOptions(options))
   }
 }
 
-// Determine if an element is an HTML Element
-export const isElement = (el: Element) => Boolean(el && el.nodeType === Node.ELEMENT_NODE)
+// Returns true if the parent element contains the child element
+export const contains = (parent: Element, child: unknown): boolean => {
+  if (!parent || !isFunction(parent.contains)) {
+    return false
+  }
+  return parent.contains(child as Node)
+}
 
+// Cause/wait-for an element to reflow it's content (adjusting it's height/width)
+export const reflow = (el: HTMLElement): number => {
+  // Requesting an elements offsetHight will trigger a reflow of the element content
+  /* istanbul ignore next: reflow doesn't happen in JSDOM */
+  return (isElement(el) as unknown) && el.offsetHeight
+}
+
+// Select all elements matching selector. Returns `[]` if none found
+export const selectAll = (selector: string, root: Element): HTMLElement[] =>
+  arrayFrom((isElement(root) ? root : d).querySelectorAll<HTMLElement>(selector))
+
+// Select a single element, returns `null` if not found
+export const select = (
+  selector: string | undefined | null,
+  root?: Element | null
+): HTMLElement | null =>
+  !selector ? null : (isElement(root) ? root : d).querySelector<HTMLElement>(selector) || null
+
+// Finds closest element matching selector. Returns `null` if not found
+export const closest = (selector: string, root: Element | null): HTMLElement | null => {
+  if (!isElement(root)) {
+    return null
+  }
+  const el = closestEl.call(root, selector)
+  // Emulate jQuery closest and return `null` if match is the passed in element (root)
+  return el === root ? null : (el as HTMLElement)
+}
+
+// Get an element given an ID
+export const getById = (id: string): HTMLElement | null =>
+  d.getElementById(/^#/.test(id) ? id.slice(1) : id) || null
+
+// Add a class to an element
+export const addClass = (el: HTMLElement, className: string): void => {
+  // We are checking for `el.classList` existence here since IE 11
+  // returns `undefined` for some elements (e.g. SVG elements)
+  // See https://github.com/bootstrap-vue/bootstrap-vue/issues/2713
+  if (className && isElement(el) && el.classList) {
+    el.classList.add(className)
+  }
+}
+
+// Remove a class from an element
+export const removeClass = (el: HTMLElement, className: string): void => {
+  // We are checking for `el.classList` existence here since IE 11
+  // returns `undefined` for some elements (e.g. SVG elements)
+  // See https://github.com/bootstrap-vue/bootstrap-vue/issues/2713
+  if (className && isElement(el) && el.classList) {
+    el.classList.remove(className)
+  }
+}
+
+// Test if an element has a class
+export const hasClass = (el: HTMLElement | null | undefined, className: string): boolean => {
+  // We are checking for `el.classList` existence here since IE 11
+  // returns `undefined` for some elements (e.g. SVG elements)
+  // See https://github.com/bootstrap-vue/bootstrap-vue/issues/2713
+  if (className && isElement(el) && el.classList) {
+    return el.classList.contains(className)
+  }
+  return false
+}
+
+// Set an attribute on an element
+export const setAttr = (el: Element | undefined | null, attr: string, value: string): void => {
+  if (attr && isElement(el)) {
+    el.setAttribute(attr, value)
+  }
+}
+
+// Remove an attribute from an element
+export const removeAttr = (el: Element | null, attr: string): void => {
+  if (attr && isElement(el)) {
+    el.removeAttribute(attr)
+  }
+}
+
+// Get an attribute value from an element
+// Returns `null` if not found
+export const getAttr = (el: Element | null, attr: string): string | null =>
+  attr && isElement(el) ? el.getAttribute(attr) : null
+
+// Determine if an attribute exists on an element
+// Returns `true` or `false`, or `null` if element not found
+export const hasAttr = (el: Element, attr: string): boolean | null =>
+  attr && isElement(el) ? el.hasAttribute(attr) : null
+
+// Return the Bounding Client Rect of an element
+// Returns `null` if not an element
+/* istanbul ignore next: getBoundingClientRect() doesn't work in JSDOM */
+export const getBCR = (el: Element): ClientRect | DOMRect | null =>
+  isElement(el) ? el.getBoundingClientRect() : null
+
+// Get computed style object for an element
+/* istanbul ignore next: getComputedStyle() doesn't work in JSDOM */
+export const getCS = (el: Element | null): CSSStyleDeclaration =>
+  // eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
+  hasWindowSupport && isElement(el) ? w.getComputedStyle(el) : ({} as CSSStyleDeclaration)
+
+// Return an element's offset with respect to document element
+// https://j11y.io/jquery/#v=git&fn=jQuery.fn.offset
+export const offset = (
+  el: Element
+): {
+  top: number
+  left: number
+} => /* istanbul ignore next: getBoundingClientRect(), getClientRects() doesn't work in JSDOM */ {
+  let _offset = { top: 0, left: 0 }
+  if (!isElement(el) || el.getClientRects().length === 0) {
+    return _offset
+  }
+  const bcr = getBCR(el)
+  if (bcr) {
+    if (el.ownerDocument) {
+      const win = el.ownerDocument.defaultView
+      if (win) {
+        _offset.top = bcr.top + win.pageYOffset
+        _offset.left = bcr.left + win.pageXOffset
+      }
+    }
+  }
+  return _offset
+}
+
+// Return an element's offset with respect to to it's offsetParent
+// https://j11y.io/jquery/#v=git&fn=jQuery.fn.position
+export const position = (
+  el: HTMLElement
+): {
+  top: number
+  left: number
+} => /* istanbul ignore next: getBoundingClientRect() doesn't work in JSDOM */ {
+  let _offset = { top: 0, left: 0 }
+  if (!isElement(el)) {
+    return _offset
+  }
+  let parentOffset = { top: 0, left: 0 }
+  const elStyles = getCS(el)
+  if (elStyles.position === 'fixed') {
+    _offset = getBCR(el) || _offset
+  } else {
+    _offset = offset(el)
+    const doc = el.ownerDocument
+    if (doc) {
+      let offsetParent = el.offsetParent || doc.documentElement
+      while (
+        offsetParent &&
+        (offsetParent === doc.body || offsetParent === doc.documentElement) &&
+        getCS(offsetParent).position === 'static'
+      ) {
+        offsetParent = offsetParent.parentNode as HTMLElement
+      }
+      if (offsetParent && offsetParent !== el && offsetParent.nodeType === Node.ELEMENT_NODE) {
+        parentOffset = offset(offsetParent)
+        const offsetParentStyles = getCS(offsetParent)
+        if (offsetParentStyles) {
+          parentOffset.top += parseFloat(offsetParentStyles.borderTopWidth || '')
+          parentOffset.left += parseFloat(offsetParentStyles.borderLeftWidth || '')
+        }
+      }
+    }
+  }
+  return {
+    top: _offset.top - parentOffset.top - parseFloat(elStyles.marginTop || ''),
+    left: _offset.left - parentOffset.left - parseFloat(elStyles.marginLeft || '')
+  }
+}
 // Determine if an HTML element is visible - Faster than CSS check
-export const isVisible = (el: HTMLElement) => {
+export const isVisible = (el: unknown): boolean => {
   if (!isElement(el) || !contains(d.body, el)) {
     return false
   }
@@ -119,169 +314,5 @@ export const isVisible = (el: HTMLElement) => {
 }
 
 // Determine if an element is disabled
-export const isDisabled = (el: HTMLInputElement) =>
+export const isDisabled = (el?: HTMLInputElement | null): boolean =>
   !isElement(el) || el.disabled || Boolean(getAttr(el, 'disabled')) || hasClass(el, 'disabled')
-
-// Cause/wait-for an element to reflow it's content (adjusting it's height/width)
-export const reflow = (el: HTMLElement) => {
-  // Requesting an elements offsetHight will trigger a reflow of the element content
-  /* istanbul ignore next: reflow doesn't happen in JSDOM */
-  return isElement(el) && el.offsetHeight
-}
-
-// Select all elements matching selector. Returns `[]` if none found
-export const selectAll = (selector: string, root: Element) =>
-  arrayFrom((isElement(root) ? root : d).querySelectorAll(selector))
-
-// Select a single element, returns `null` if not found
-export const select = (selector: string, root: Element) =>
-  (isElement(root) ? root : d).querySelector(selector) || null
-
-// Determine if an element matches a selector
-export const matches = (el: Element, selector: string) => {
-  if (!isElement(el)) {
-    return false
-  }
-  return matchesEl.call(el, selector)
-}
-
-// Finds closest element matching selector. Returns `null` if not found
-export const closest = (selector: string, root: Element) => {
-  if (!isElement(root)) {
-    return null
-  }
-  const el = closestEl.call(root, selector)
-  // Emulate jQuery closest and return `null` if match is the passed in element (root)
-  return el === root ? null : el
-}
-
-// Returns true if the parent element contains the child element
-export const contains = (parent: Element, child: Element) => {
-  if (!parent || !isFunction(parent.contains)) {
-    return false
-  }
-  return parent.contains(child)
-}
-
-// Get an element given an ID
-export const getById = (id: string) => d.getElementById(/^#/.test(id) ? id.slice(1) : id) || null
-
-// Add a class to an element
-export const addClass = (el: HTMLElement, className: string) => {
-  // We are checking for `el.classList` existence here since IE 11
-  // returns `undefined` for some elements (e.g. SVG elements)
-  // See https://github.com/bootstrap-vue/bootstrap-vue/issues/2713
-  if (className && isElement(el) && el.classList) {
-    el.classList.add(className)
-  }
-}
-
-// Remove a class from an element
-export const removeClass = (el: HTMLElement, className: string) => {
-  // We are checking for `el.classList` existence here since IE 11
-  // returns `undefined` for some elements (e.g. SVG elements)
-  // See https://github.com/bootstrap-vue/bootstrap-vue/issues/2713
-  if (className && isElement(el) && el.classList) {
-    el.classList.remove(className)
-  }
-}
-
-// Test if an element has a class
-export const hasClass = (el: HTMLElement, className: string) => {
-  // We are checking for `el.classList` existence here since IE 11
-  // returns `undefined` for some elements (e.g. SVG elements)
-  // See https://github.com/bootstrap-vue/bootstrap-vue/issues/2713
-  if (className && isElement(el) && el.classList) {
-    return el.classList.contains(className)
-  }
-  return false
-}
-
-// Set an attribute on an element
-export const setAttr = (el: Element, attr: string, value: string) => {
-  if (attr && isElement(el)) {
-    el.setAttribute(attr, value)
-  }
-}
-
-// Remove an attribute from an element
-export const removeAttr = (el: Element, attr: string) => {
-  if (attr && isElement(el)) {
-    el.removeAttribute(attr)
-  }
-}
-
-// Get an attribute value from an element
-// Returns `null` if not found
-export const getAttr = (el: Element, attr: string) =>
-  attr && isElement(el) ? el.getAttribute(attr) : null
-
-// Determine if an attribute exists on an element
-// Returns `true` or `false`, or `null` if element not found
-export const hasAttr = (el: Element, attr: string) =>
-  attr && isElement(el) ? el.hasAttribute(attr) : null
-
-// Return the Bounding Client Rect of an element
-// Returns `null` if not an element
-/* istanbul ignore next: getBoundingClientRect() doesn't work in JSDOM */
-export const getBCR = (el: Element) => (isElement(el) ? el.getBoundingClientRect() : null)
-
-// Get computed style object for an element
-/* istanbul ignore next: getComputedStyle() doesn't work in JSDOM */
-export const getCS = (el: Element) =>
-  hasWindowSupport && isElement(el) ? w.getComputedStyle(el) : ({} as CSSStyleDeclaration)
-
-// Return an element's offset with respect to document element
-// https://j11y.io/jquery/#v=git&fn=jQuery.fn.offset
-export const offset = (
-  el: Element
-) => /* istanbul ignore next: getBoundingClientRect(), getClientRects() doesn't work in JSDOM */ {
-  let _offset = { top: 0, left: 0 }
-  if (!isElement(el) || el.getClientRects().length === 0) {
-    return _offset
-  }
-  const bcr = getBCR(el)
-  if (bcr) {
-    const win = el.ownerDocument!.defaultView
-    _offset.top = bcr.top + win!.pageYOffset
-    _offset.left = bcr.left + win!.pageXOffset
-  }
-  return _offset
-}
-
-// Return an element's offset with respect to to it's offsetParent
-// https://j11y.io/jquery/#v=git&fn=jQuery.fn.position
-export const position = (
-  el: HTMLElement
-) => /* istanbul ignore next: getBoundingClientRect() doesn't work in JSDOM */ {
-  let _offset = { top: 0, left: 0 }
-  if (!isElement(el)) {
-    return _offset
-  }
-  let parentOffset = { top: 0, left: 0 }
-  const elStyles = getCS(el)
-  if (elStyles.position === 'fixed') {
-    _offset = getBCR(el) || _offset
-  } else {
-    _offset = offset(el)
-    const doc = el.ownerDocument!
-    let offsetParent = el.offsetParent || doc.documentElement
-    while (
-      offsetParent &&
-      (offsetParent === doc.body || offsetParent === doc.documentElement) &&
-      getCS(offsetParent).position === 'static'
-    ) {
-      offsetParent = offsetParent.parentNode as HTMLElement
-    }
-    if (offsetParent && offsetParent !== el && offsetParent.nodeType === Node.ELEMENT_NODE) {
-      parentOffset = offset(offsetParent)
-      const offsetParentStyles = getCS(offsetParent)
-      parentOffset.top += parseFloat(offsetParentStyles.borderTopWidth!)
-      parentOffset.left += parseFloat(offsetParentStyles.borderLeftWidth!)
-    }
-  }
-  return {
-    top: _offset.top - parentOffset.top - parseFloat(elStyles.marginTop!),
-    left: _offset.left - parentOffset.left - parseFloat(elStyles.marginLeft!)
-  }
-}

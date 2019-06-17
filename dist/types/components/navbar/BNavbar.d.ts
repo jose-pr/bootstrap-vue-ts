@@ -1,4 +1,4 @@
-import { BooleanLike } from "../../chunks/1b6c0039";
+import { BooleanLike } from "../../chunks/fbe932e6";
 export interface BNavbarConfig {
     tag?: string | null;
     type?: string | null;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import OurVue, { FunctionalComponentOptions, VueConstructor } from 'vue'
 import { PropOptions, RecordPropsDefinition } from 'vue/types/options'
 
@@ -18,7 +19,7 @@ export * from 'vue/types/options'
 
 export function functionalComponent<Props>(
   options: Omit<FunctionalComponentOptions<Props, RecordPropsDefinition<Props>>, 'functional'> & {
-    methods?: Dict<Function>;
+    methods?: Dict<Function>
   }
 ) {
   return Vue.extend<Props>({
@@ -53,6 +54,9 @@ export type PropsDef<T> = {
 
 export interface VueElement extends HTMLElement {
   __vue__: OurVue
+}
+export interface VueExtended extends OurVue {
+  $route?: unknown
 }
 
 export interface BvInstance {

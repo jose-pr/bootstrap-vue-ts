@@ -1,9 +1,8 @@
-import { BvPlugin } from "../chunks/a31a6b53";
-import { DirectiveOptions } from "../chunks/a38114fa";
-export declare const VBModalDirectives: {
-    VBModal: DirectiveOptions;
+import { BvPlugin } from "../chunks/ca461e24";
+export declare const VBmodalDirectives: {
+    VBModal: import("vue").DirectiveOptions;
 };
-declare const VBModalPlugin: BvPlugin;
-export default VBModalPlugin;
-export * from "../chunks/20b2115e";
-export { VBModalPlugin };
+declare const VBmodalPlugin: BvPlugin;
+export default VBmodalPlugin;
+export * from "../chunks/e2797630";
+export { VBmodalPlugin };

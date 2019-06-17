@@ -1,5 +1,4 @@
-import { u as bindTargets, v as unbindTargets, x as removeAttr, y as setAttr } from '../../chunks/fbe932e6.js';
-import 'vue';
+import { u as bindTargets, v as unbindTargets, x as removeAttr, y as setAttr } from './fbe932e6.js';
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 // Target listen types
@@ -37,5 +36,4 @@ const VBModal = {
     }
 };
 
-export default VBModal;
-export { VBModal };
+export { VBModal as V, VBModal as a };
