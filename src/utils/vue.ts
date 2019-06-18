@@ -57,6 +57,7 @@ export interface VueElement extends HTMLElement {
 }
 export interface VueExtended extends OurVue {
   $route?: unknown
+  _isVue: boolean
 }
 
 export interface BvInstance {

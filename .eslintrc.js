@@ -40,6 +40,8 @@ module.exports = {
     'vue/no-v-html': 'off',
     'vue/require-default-prop': 'off',
     'vue/require-prop-types': 'off',
-    'vue/singleline-html-element-content-newline': 'off'
+    'vue/singleline-html-element-content-newline': 'off',
+    "@typescript-eslint/explicit-function-return-type":'off',
+    "@typescript-eslint/explicit-member-accessibility":'off'
   }
 }

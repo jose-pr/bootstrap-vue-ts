@@ -1,14 +1,35 @@
-import Popper, { Boundary, Placement } from 'popper.js'
-import PopOver from '../../utils/popover'
-import warn from '../../utils/warn'
-import { getComponentConfig } from '../../utils/config'
-import { isBrowser } from '../../utils/env'
-import { isFunction, isString } from '../../utils/inspect'
-import { keys } from '../../utils/object'
-import { DirectiveBinding, ToolTipConfig, isObject, VNode, VueElement } from '../../utils'
+import ToolTip, { ToolTipConfig } from '../../utils/tooltip'
+import { select, addClass, removeClass, getAttr } from '../../utils/dom'
+import { isFunction, isNull, isString } from '../../utils/inspect'
+import { isObject, keys } from '../../utils/object'
+import { DirectiveBinding, getComponentConfig } from '../../utils'
+import { Boundary, Placement } from 'popper.js'
 
-// Key which we use to store tooltip object on element
-const BV_POPOVER = '__BV_PopOver__'
+const NAME = 'popover'
+const CLASS_PREFIX = 'bs-popover'
+const BS_CLASS_PREFIX_REGEX = new RegExp(`\\b${CLASS_PREFIX}\\S+`, 'g')
+
+const Defaults: ToolTipConfig = {
+  ...ToolTip.Default,
+  placement: 'right',
+  trigger: 'click',
+  content: '',
+  template:
+    '<div class="popover" role="tooltip">' +
+    '<div class="arrow"></div>' +
+    '<h3 class="popover-header"></h3>' +
+    '<div class="popover-body"></div></div>'
+}
+
+const ClassName = {
+  FADE: 'fade',
+  SHOW: 'show'
+}
+
+const Selector = {
+  TITLE: '.popover-header',
+  CONTENT: '.popover-body'
+}
 
 // Valid event triggers
 const validTriggers: { [k in Triggers]?: boolean } = {
@@ -19,171 +40,199 @@ const validTriggers: { [k in Triggers]?: boolean } = {
 }
 export type Triggers = 'focus' | 'hover' | 'click' | 'blur'
 
-export interface PopoverElement extends VueElement {
-  [BV_POPOVER]?: PopOver
-}
+export class PopOver extends ToolTip {
+  // --- Getter overrides ---
 
-// Build a PopOver config based on bindings (if any)
-// Arguments and modifiers take precedence over passed value config object
-/* istanbul ignore next: not easy to test */
-const parseBindings = (
-  bindings: DirectiveBinding
-): Partial<ToolTipConfig> => /* istanbul ignore next: not easy to test */ {
-  // We start out with a basic config
-  const NAME = 'BPopover'
-  let config: Partial<ToolTipConfig> = {
-    delay: getComponentConfig(NAME, 'delay'),
-    boundary: String(getComponentConfig(NAME, 'boundary')) as Boundary,
-    boundaryPadding: parseInt(getComponentConfig(NAME, 'boundaryPadding'), 10) || 0
+  public static get Default(): ToolTipConfig {
+    return Defaults
   }
 
-  // Process bindings.value
-  if (isString(bindings.value)) {
-    // Value is popover content (html optionally supported)
-    config.content = bindings.value
-  } else if (isFunction(bindings.value)) {
-    // Content generator function
-    config.content = bindings.value
-  } else if (isObject(bindings.value)) {
-    // Value is config object, so merge
-    config = { ...config, ...bindings.value }
+  public static get NAME(): string {
+    return NAME
   }
 
-  // If argument, assume element ID of container element
-  if (bindings.arg) {
-    // Element ID specified as arg
-    // We must prepend '#' to become a CSS selector
-    config.container = `#${bindings.arg}`
-  }
+  // Build a PopOver config based on bindings (if any)
+  // Arguments and modifiers take precedence over passed value config object
+  /* istanbul ignore next: not easy to test */
 
-  // Process modifiers
-  keys(bindings.modifiers).forEach((mod): void => {
-    if (/^html$/.test(mod)) {
-      // Title allows HTML
-      config.html = true
-    } else if (/^nofade$/.test(mod)) {
-      // no animation
-      config.animation = false
-    } else if (
-      /^(auto|top(left|right)?|bottom(left|right)?|left(top|bottom)?|right(top|bottom)?)$/.test(mod)
-    ) {
-      // placement of popover
-      config.placement = mod as Placement
-    } else if (/^(window|viewport|scrollParent)$/.test(mod)) {
-      // Boundary of popover
-      config.boundary = mod as Boundary
-    } else if (/^d\d+$/.test(mod)) {
-      // Delay value
-      const delay = parseInt(mod.slice(1), 10) || 0
-      if (delay) {
-        config.delay = delay
+  static ParseBindings<T = ToolTipConfig>(bindings: DirectiveBinding): T {
+    // We start out with a basic config
+    const NAME = 'BPopover'
+    let config: Partial<ToolTipConfig> = {
+      delay: getComponentConfig(NAME, 'delay'),
+      boundary: String(getComponentConfig(NAME, 'boundary')) as Boundary,
+      boundaryPadding: parseInt(getComponentConfig(NAME, 'boundaryPadding'), 10) || 0
+    }
+
+    // Process bindings.value
+    if (isString(bindings.value)) {
+      // Value is popover content (html optionally supported)
+      config.content = bindings.value
+    } else if (isFunction(bindings.value)) {
+      // Content generator function
+      config.content = bindings.value
+    } else if (isObject(bindings.value)) {
+      // Value is config object, so merge
+      config = { ...config, ...bindings.value }
+    }
+
+    // If argument, assume element ID of container element
+    if (bindings.arg) {
+      // Element ID specified as arg
+      // We must prepend '#' to become a CSS selector
+      config.container = `#${bindings.arg}`
+    }
+
+    // Process modifiers
+    keys(bindings.modifiers).forEach((mod): void => {
+      if (/^html$/.test(mod)) {
+        // Title allows HTML
+        config.html = true
+      } else if (/^nofade$/.test(mod)) {
+        // no animation
+        config.animation = false
+      } else if (
+        /^(auto|top(left|right)?|bottom(left|right)?|left(top|bottom)?|right(top|bottom)?)$/.test(
+          mod
+        )
+      ) {
+        // placement of popover
+        config.placement = mod as Placement
+      } else if (/^(window|viewport|scrollParent)$/.test(mod)) {
+        // Boundary of popover
+        config.boundary = mod as Boundary
+      } else if (/^d\d+$/.test(mod)) {
+        // Delay value
+        const delay = parseInt(mod.slice(1), 10) || 0
+        if (delay) {
+          config.delay = delay
+        }
+      } else if (/^o-?\d+$/.test(mod)) {
+        // Offset value (negative allowed)
+        const offset = parseInt(mod.slice(1), 10) || 0
+        if (offset) {
+          config.offset = offset
+        }
       }
-    } else if (/^o-?\d+$/.test(mod)) {
-      // Offset value (negative allowed)
-      const offset = parseInt(mod.slice(1), 10) || 0
-      if (offset) {
-        config.offset = offset
+    })
+
+    // Special handling of event trigger modifiers trigger is
+    // a space separated list
+    const selectedTriggers: { [key in Triggers]?: boolean } = {}
+
+    // Parse current config object trigger
+    let triggers = isString(config.trigger) ? config.trigger.trim().split(/\s+/) : []
+    triggers.forEach((trigger: string): void => {
+      if (validTriggers[trigger as Triggers]) {
+        selectedTriggers[trigger as Triggers] = true
       }
+    })
+
+    // Parse modifiers for triggers
+    keys(validTriggers).forEach((trigger): void => {
+      if (bindings.modifiers[trigger]) {
+        selectedTriggers[trigger as Triggers] = true
+      }
+    })
+
+    // Sanitize triggers
+    config.trigger = keys(selectedTriggers).join(' ')
+    if (config.trigger === 'blur') {
+      // Blur by itself is useless, so convert it to focus
+      config.trigger = 'focus'
     }
-  })
-
-  // Special handling of event trigger modifiers trigger is
-  // a space separated list
-  const selectedTriggers: { [key in Triggers]?: boolean } = {}
-
-  // Parse current config object trigger
-  let triggers = isString(config.trigger) ? config.trigger.trim().split(/\s+/) : []
-  triggers.forEach((trigger: string): void => {
-    if (validTriggers[trigger as Triggers]) {
-      selectedTriggers[trigger as Triggers] = true
+    if (!config.trigger) {
+      // Remove trigger config
+      delete config.trigger
     }
-  })
 
-  // Parse modifiers for triggers
-  keys(validTriggers).forEach((trigger): void => {
-    if (bindings.modifiers[trigger]) {
-      selectedTriggers[trigger as Triggers] = true
+    return config as T
+  }
+
+  // --- Method overrides ---
+
+  public isWithContent(tip: HTMLElement): boolean {
+    tip = tip || this.$tip
+    if (!tip) {
+      /* istanbul ignore next */
+      return false
     }
-  })
-
-  // Sanitize triggers
-  config.trigger = keys(selectedTriggers).join(' ')
-  if (config.trigger === 'blur') {
-    // Blur by itself is useless, so convert it to focus
-    config.trigger = 'focus'
-  }
-  if (!config.trigger) {
-    // Remove trigger config
-    delete config.trigger
+    const hasTitle = Boolean(((select(Selector.TITLE, tip) || {}) as HTMLElement).innerHTML)
+    const hasContent = Boolean(((select(Selector.CONTENT, tip) || {}) as HTMLElement).innerHTML)
+    return hasTitle || hasContent
   }
 
-  return config
-}
+  public addAttachmentClass(attachment: string): void /* istanbul ignore next */ {
+    addClass(this.getTipElement(), `${CLASS_PREFIX}-${attachment}`)
+  }
 
-// Add or update PopOver on our element
-const applyPopover = (el: PopoverElement, bindings: DirectiveBinding, vnode: VNode): void => {
-  if (!isBrowser) {
+  public setContent(tip: HTMLElement): void {
+    // we use append for html objects to maintain js events/components
+    this.setElementContent(select(Selector.TITLE, tip), this.getTitle())
+    this.setElementContent(select(Selector.CONTENT, tip), this.getContent())
+
+    removeClass(tip, ClassName.FADE)
+    removeClass(tip, ClassName.SHOW)
+  }
+
+  // This method may look identical to ToolTip version, but it uses a different RegEx defined above
+  public cleanTipClass(): void /* istanbul ignore next */ {
+    const tip = this.getTipElement()
+    const tabClass = tip.className.match(BS_CLASS_PREFIX_REGEX)
+    if (!isNull(tabClass) && tabClass.length > 0) {
+      tabClass.forEach((cls): void => {
+        removeClass(tip, cls)
+      })
+    }
+  }
+
+  public getTitle(): string {
+    let config = this.$config as ToolTipConfig
+    let title = config.title || ''
     /* istanbul ignore next */
-    return
-  }
-  // Popper is required for PopOvers to work
-  if (!Popper) {
+    if (isFunction(title)) {
+      title = title(this.$element)
+    }
     /* istanbul ignore next */
-    warn('v-b-popover: Popper.js is required for PopOvers to work')
-    /* istanbul ignore next */
-    return
+    if (isObject(title) && title.nodeType && !title.innerHTML.trim()) {
+      // We have a dom node, but without inner content, so just return an empty string
+      title = ''
+    }
+    if (isString(title)) {
+      title = title.trim()
+    }
+    if (!title) {
+      // Try and grab element's title attribute
+      title = getAttr(this.$element, 'title') || getAttr(this.$element, 'data-original-title') || ''
+      title = title.trim()
+    }
+    return title
   }
-  const config = parseBindings(bindings)
-  if (el[BV_POPOVER] instanceof PopOver) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    el[BV_POPOVER]!.updateConfig(config)
-  } else {
-    if (!vnode.context) return
-    el[BV_POPOVER] = new PopOver(el, config, vnode.context.$root)
-  }
-}
 
-// Remove PopOver on our element
-const removePopover = (el: PopoverElement): void => {
-  if (el[BV_POPOVER] instanceof PopOver) {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    el[BV_POPOVER]!.destroy()
-    el[BV_POPOVER] = undefined
-    delete el[BV_POPOVER]
+  // New methods
+
+  public getContent(): string {
+    let config = this.$config as ToolTipConfig
+    let content = config.content || ''
+    /* istanbul ignore next */
+    if (isFunction(content)) {
+      content = content(this.$element)
+    }
+    /* istanbul ignore next */
+    if (isObject(content) && content.nodeType && !content.innerHTML.trim()) {
+      // We have a dom node, but without inner content, so just return an empty string
+      content = ''
+    }
+    if (isString(content)) {
+      content = content.trim()
+    }
+    return content
   }
 }
 
 /*
  * Export our directive
  */
-export const VBPopover = {
-  bind(el: PopoverElement, bindings: DirectiveBinding, vnode: VNode): void {
-    applyPopover(el, bindings, vnode)
-  },
-  inserted(el: PopoverElement, bindings: DirectiveBinding, vnode: VNode): void {
-    applyPopover(el, bindings, vnode)
-  },
-  update(
-    el: PopoverElement,
-    bindings: DirectiveBinding,
-    vnode: VNode
-  ): void /* istanbul ignore next: not easy to test */ {
-    if (bindings.value !== bindings.oldValue) {
-      applyPopover(el, bindings, vnode)
-    }
-  },
-  componentUpdated(
-    el: PopoverElement,
-    bindings: DirectiveBinding,
-    vnode: VNode
-  ): void /* istanbul ignore next: not easy to test */ {
-    if (bindings.value !== bindings.oldValue) {
-      applyPopover(el, bindings, vnode)
-    }
-  },
-  unbind(el: PopoverElement): void {
-    removePopover(el)
-  }
-}
+export const VBPopover = PopOver.GetBvDirective()
 
 export default VBPopover

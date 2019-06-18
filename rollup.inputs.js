@@ -7,6 +7,8 @@ const inputs = {
   'directives/VBmodalPlugin': './src/directives/modal/index.ts',
   'directives/modal/VBModal': 'src/directives/modal/modal.ts',
   'directives/VBpopoverPlugin': './src/directives/popover/index.ts',
-  'directives/popover/VBPopover': 'src/directives/popover/popover.ts'
+  'directives/popover/VBPopover': 'src/directives/popover/popover.ts',
+  'directives/VBscrollspyPlugin': './src/directives/scrollspy/index.ts',
+  'directives/scrollspy/VBScrollspy': 'src/directives/scrollspy/scrollspy.ts'
 }
 export default inputs

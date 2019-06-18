@@ -1,6 +1,6 @@
 import { from as arrayFrom } from './array'
 import { hasWindowSupport, hasDocumentSupport, hasPassiveEventSupport } from './env'
-import { isFunction, isNull } from './inspect'
+import { isFunction, isNull, isUndefined } from './inspect'
 import { isObject } from './object'
 
 // --- Constants ---
@@ -99,25 +99,33 @@ export const parseEventOptions = (
 
 // Attach an event listener to an element
 export const eventOn = (
-  el: Element | Document | Window | null,
+  el: unknown,
   evtName: string,
   handler: EventListenerOrEventListenerObject,
   options?: EventListenerOptions
 ): void => {
-  if (el && el.addEventListener) {
-    el.addEventListener(evtName, handler, parseEventOptions(options))
+  if (el && (el as { addEventListener: Function }).addEventListener) {
+    ;(el as { addEventListener: Function }).addEventListener(
+      evtName,
+      handler,
+      parseEventOptions(options)
+    )
   }
 }
 
 // Remove an event listener from an element
 export const eventOff = (
-  el: Element | Document | Window | null,
+  el: unknown,
   evtName: string,
   handler: EventListenerOrEventListenerObject,
   options?: EventListenerOptions
 ): void => {
-  if (el && el.removeEventListener) {
-    el.removeEventListener(evtName, handler, parseEventOptions(options))
+  if (el && (el as { removeEventListener: Function }).removeEventListener) {
+    ;(el as { removeEventListener: Function }).removeEventListener(
+      evtName,
+      handler,
+      parseEventOptions(options)
+    )
   }
 }
 
@@ -137,7 +145,7 @@ export const reflow = (el: HTMLElement): number => {
 }
 
 // Select all elements matching selector. Returns `[]` if none found
-export const selectAll = (selector: string, root: Element): HTMLElement[] =>
+export const selectAll = (selector: string, root?: Element): HTMLElement[] =>
   arrayFrom((isElement(root) ? root : d).querySelectorAll<HTMLElement>(selector))
 
 // Select a single element, returns `null` if not found
@@ -148,7 +156,7 @@ export const select = (
   !selector ? null : (isElement(root) ? root : d).querySelector<HTMLElement>(selector) || null
 
 // Finds closest element matching selector. Returns `null` if not found
-export const closest = (selector: string, root: Element | null): HTMLElement | null => {
+export const closest = (selector: string, root?: Element | null): HTMLElement | null => {
   if (!isElement(root)) {
     return null
   }
@@ -162,7 +170,7 @@ export const getById = (id: string): HTMLElement | null =>
   d.getElementById(/^#/.test(id) ? id.slice(1) : id) || null
 
 // Add a class to an element
-export const addClass = (el: HTMLElement, className: string): void => {
+export const addClass = (el: unknown, className: string): void => {
   // We are checking for `el.classList` existence here since IE 11
   // returns `undefined` for some elements (e.g. SVG elements)
   // See https://github.com/bootstrap-vue/bootstrap-vue/issues/2713
@@ -172,7 +180,7 @@ export const addClass = (el: HTMLElement, className: string): void => {
 }
 
 // Remove a class from an element
-export const removeClass = (el: HTMLElement, className: string): void => {
+export const removeClass = (el: unknown, className: string): void => {
   // We are checking for `el.classList` existence here since IE 11
   // returns `undefined` for some elements (e.g. SVG elements)
   // See https://github.com/bootstrap-vue/bootstrap-vue/issues/2713
@@ -193,14 +201,14 @@ export const hasClass = (el: HTMLElement | null | undefined, className: string):
 }
 
 // Set an attribute on an element
-export const setAttr = (el: Element | undefined | null, attr: string, value: string): void => {
+export const setAttr = (el?: Element | null, attr?: string, value?: string): void => {
   if (attr && isElement(el)) {
-    el.setAttribute(attr, value)
+    el.setAttribute(attr, value || '')
   }
 }
 
 // Remove an attribute from an element
-export const removeAttr = (el: Element | null, attr: string): void => {
+export const removeAttr = (el?: Element | null, attr?: string): void => {
   if (attr && isElement(el)) {
     el.removeAttribute(attr)
   }
@@ -208,7 +216,7 @@ export const removeAttr = (el: Element | null, attr: string): void => {
 
 // Get an attribute value from an element
 // Returns `null` if not found
-export const getAttr = (el: Element | null, attr: string): string | null =>
+export const getAttr = (el?: Element | null, attr?: string): string | null =>
   attr && isElement(el) ? el.getAttribute(attr) : null
 
 // Determine if an attribute exists on an element
@@ -219,7 +227,7 @@ export const hasAttr = (el: Element, attr: string): boolean | null =>
 // Return the Bounding Client Rect of an element
 // Returns `null` if not an element
 /* istanbul ignore next: getBoundingClientRect() doesn't work in JSDOM */
-export const getBCR = (el: Element): ClientRect | DOMRect | null =>
+export const getBCR = (el: unknown): ClientRect | DOMRect | null =>
   isElement(el) ? el.getBoundingClientRect() : null
 
 // Get computed style object for an element
@@ -231,7 +239,7 @@ export const getCS = (el: Element | null): CSSStyleDeclaration =>
 // Return an element's offset with respect to document element
 // https://j11y.io/jquery/#v=git&fn=jQuery.fn.offset
 export const offset = (
-  el: Element
+  el: unknown
 ): {
   top: number
   left: number
@@ -256,7 +264,7 @@ export const offset = (
 // Return an element's offset with respect to to it's offsetParent
 // https://j11y.io/jquery/#v=git&fn=jQuery.fn.position
 export const position = (
-  el: HTMLElement
+  el: unknown
 ): {
   top: number
   left: number

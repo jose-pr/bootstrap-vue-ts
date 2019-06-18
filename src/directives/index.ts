@@ -1,9 +1,11 @@
 import { installFactory, BvPlugin } from '../core/BvPlugin'
 import VBmodalPlugin from './modal'
 import VBpopoverPlugin from './popover'
+import VBscrollspyPlugin from './scrollspy'
 export const DirectivePlugins = {
   VBmodalPlugin,
-  VBpopoverPlugin
+  VBpopoverPlugin,
+  VBscrollspyPlugin
 }
 export const DirectivesPlugin: BvPlugin = {
   install: installFactory({
@@ -12,3 +14,4 @@ export const DirectivesPlugin: BvPlugin = {
 }
 export * from './modal'
 export * from './popover'
+export * from './scrollspy'
