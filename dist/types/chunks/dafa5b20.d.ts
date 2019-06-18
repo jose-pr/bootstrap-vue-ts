@@ -1,6 +1,6 @@
-import OurVue from "fbe932e6";
-import { VueConstructor, DirectiveOptions, DirectiveFunction, PluginObject, PluginFunction, Dict } from "fbe932e6";
-import { BvComponent } from "04377600";
+import OurVue from "5cd47ea1";
+import { VueConstructor, DirectiveOptions, DirectiveFunction, PluginObject, PluginFunction, Dict } from "5cd47ea1";
+import { BvComponent } from "87e3debe";
 declare class BvConfig {
     private $_config;
     private $_cachedBreakpoints;

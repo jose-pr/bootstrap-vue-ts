@@ -1,5 +1,5 @@
-import { B as BV_CONFIG_PROP_NAME, O as OurVue, D as DEFAULTS, i as isPlainObject, h as hasOwnProperty, w as warn, a as isArray, b as isString, c as cloneDeep, d as isUndefined, g as get, e as getOwnPropertyNames, f as checkMultipleVue, j as hasWindowSupport } from './fbe932e6.js';
-import './04377600.js';
+import { B as BV_CONFIG_PROP_NAME, O as OurVue, D as DEFAULTS, i as isPlainObject, h as hasOwnProperty, w as warn, a as isArray, b as isString, c as cloneDeep, d as isUndefined, g as get, e as getOwnPropertyNames, f as checkMultipleVue, j as hasWindowSupport } from './5cd47ea1.js';
+import './87e3debe.js';
 
 // --- Constants ---
 // Config manager class

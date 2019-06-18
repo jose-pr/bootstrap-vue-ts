@@ -1,8 +1,8 @@
-import BvEvent from "fbe932e6";
-import ToolTip from "fbe932e6";
+import OurVue from "5cd47ea1";
+import BvEvent from "5cd47ea1";
 import OurVue from "vue";
 import Popper from "popper.js";
-import { Dict, Primitive, VueElement, VueExtended, ToolTipConfig, VNode, DirectiveBinding } from "fbe932e6";
+import { Dict, Primitive, VueElement, VueExtended, DirectiveBinding, VNode, Directive } from "5cd47ea1";
 import { FunctionalComponentOptions, VueConstructor } from "vue";
 import { PropOptions, RecordPropsDefinition } from "vue/types/options";
 import { PopperOptions, Placement, Boundary, Behavior, Data } from "popper.js";
@@ -155,6 +155,7 @@ interface VueElement extends HTMLElement {
 }
 interface VueExtended extends OurVue {
     $route?: unknown;
+    _isVue: boolean;
 }
 interface BvInstance {
     readonly $bvModal?: BvInstance;
@@ -221,60 +222,92 @@ interface MutationObs {
     new (callback: MutationCallback): MutationObserver;
 }
 declare const parseEventOptions: (options?: boolean | EventListenerOptions | undefined) => boolean | EventListenerOptions;
-declare const eventOn: (el: Element | Window | Document | null, evtName: string, handler: EventListenerOrEventListenerObject, options?: EventListenerOptions | undefined) => void;
-declare const eventOff: (el: Element | Window | Document | null, evtName: string, handler: EventListenerOrEventListenerObject, options?: EventListenerOptions | undefined) => void;
+declare const eventOn: (el: unknown, evtName: string, handler: EventListenerOrEventListenerObject, options?: EventListenerOptions | undefined) => void;
+declare const eventOff: (el: unknown, evtName: string, handler: EventListenerOrEventListenerObject, options?: EventListenerOptions | undefined) => void;
 declare const contains: (parent: Element, child: unknown) => boolean;
 declare const reflow: (el: HTMLElement) => number;
-declare const selectAll: (selector: string, root: Element) => HTMLElement[];
+declare const selectAll: (selector: string, root?: Element | undefined) => HTMLElement[];
 declare const select: (selector: string | null | undefined, root?: Element | null | undefined) => HTMLElement | null;
-declare const closest: (selector: string, root: Element | null) => HTMLElement | null;
+declare const closest: (selector: string, root?: Element | null | undefined) => HTMLElement | null;
 declare const getById: (id: string) => HTMLElement | null;
-declare const addClass: (el: HTMLElement, className: string) => void;
-declare const removeClass: (el: HTMLElement, className: string) => void;
+declare const addClass: (el: unknown, className: string) => void;
+declare const removeClass: (el: unknown, className: string) => void;
 declare const hasClass: (el: HTMLElement | null | undefined, className: string) => boolean;
-declare const setAttr: (el: Element | null | undefined, attr: string, value: string) => void;
-declare const removeAttr: (el: Element | null, attr: string) => void;
-declare const getAttr: (el: Element | null, attr: string) => string | null;
+declare const setAttr: (el?: Element | null | undefined, attr?: string | undefined, value?: string | undefined) => void;
+declare const removeAttr: (el?: Element | null | undefined, attr?: string | undefined) => void;
+declare const getAttr: (el?: Element | null | undefined, attr?: string | undefined) => string | null;
 declare const hasAttr: (el: Element, attr: string) => boolean | null;
-declare const getBCR: (el: Element) => ClientRect | DOMRect | null;
+declare const getBCR: (el: unknown) => ClientRect | DOMRect | null;
 declare const getCS: (el: Element | null) => CSSStyleDeclaration;
-declare const offset: (el: Element) => {
+declare const offset: (el: unknown) => {
     top: number;
     left: number;
 };
-declare const position: (el: HTMLElement) => {
+declare const position: (el: unknown) => {
     top: number;
     left: number;
 };
 declare const isVisible: (el: unknown) => boolean;
 declare const isDisabled: (el?: HTMLInputElement | null | undefined) => boolean;
+declare abstract class Directive<ConfigType> {
+    protected ['constructor']: unknown;
+    $element?: HTMLElement;
+    $root?: VueExtended;
+    $config?: ConfigType;
+    $timeouts?: Dict<number | undefined>;
+    $intervals?: Dict<number | undefined>;
+    constructor(element: HTMLElement, config: Partial<ConfigType>, $root?: VueExtended);
+    init(): void;
+    static readonly NAME: string;
+    readonly name: string;
+    readonly defaultConfig: ConfigType;
+    getStaticProp<T>(name: keyof T): T[keyof T];
+    static readonly DEFAULT: unknown;
+    static readonly DEFAULT_TYPE: unknown;
+    static ParseBindings(bindings: DirectiveBinding): unknown;
+    static readonly ElementHoldingProp: string;
+    static ValidateApply(element: HTMLElement, config: DirectiveBinding, $root?: VNode): boolean;
+    static Dispose(el: HTMLElement): void;
+    static Apply(el: HTMLElement, bindings: DirectiveBinding, vnode: VNode): void;
+    preUpdateConfig(): void;
+    postUpdateConfig(): void;
+    updateConfig(config: Partial<ConfigType>, $root?: VueExtended): void;
+    processConfig(config: ConfigType): ConfigType;
+    clearProps(): void;
+    dispose(): void;
+    preDispose(): void;
+    postDispose(): void;
+    listen(): void;
+    unListen(): void;
+    activeTimeout(name: string): boolean;
+    activeInterval(name: string): boolean;
+    setTimeout(name: string, handler: TimerHandler, timeout?: number, ...args: unknown[]): number;
+    clearTimeout(name: string): void;
+    setInterval(name: string, handler: TimerHandler, timeout?: number, ...args: unknown[]): number;
+    clearInterval(name: string): void;
+    static GetBvDirective(): {
+        bind(el: HTMLElement, bindings: DirectiveBinding, vnode: VNode): void;
+        inserted(el: HTMLElement, bindings: DirectiveBinding, vnode: VNode): void;
+        update(el: HTMLElement, bindings: DirectiveBinding, vnode: VNode): void;
+        componentUpdated(el: HTMLElement, bindings: DirectiveBinding, vnode: VNode): void;
+        unbind(el: HTMLElement): void;
+    };
+}
 declare const noop: () => void;
 declare const TestNever1: () => string;
 declare const TestNever2: () => string;
 declare const TestNever3: () => string;
+/**
+ * Observe a DOM element changes, falls back to eventListener mode
+ * @param {Element} el The DOM element to observe
+ * @param {Function} callback callback to be called on change
+ * @param {object} [opts={childList: true, subtree: true}] observe options
+ * @see http://stackoverflow.com/questions/3219758
+ */
+declare const observeDom: (el: Element | OurVue | null, callback: () => void, opts: {}) => MutationObserver | null;
 declare const TestPartial1: () => string;
 declare const TestPartial2: () => string;
 declare const TestPartial3: () => string;
-interface ToolTipConfig {
-    animation: boolean;
-    template: string;
-    trigger: string;
-    title: string;
-    delay: number | {
-        show: number;
-        hide: number;
-    };
-    html: boolean;
-    placement: Placement;
-    offset: number;
-    arrowPadding: number | string;
-    container: boolean | string;
-    fallbackPlacement: Behavior;
-    callbacks: Dict<Function>;
-    boundary: HTMLElement | Boundary;
-    boundaryPadding: number;
-    content: string;
-}
 /**
  * Convert a value to a string that can be rendered.
  */
@@ -305,27 +338,48 @@ declare const bindTargets: (vnode: VNode, binding: DirectiveBinding, listenTypes
     vnode: VNode;
 }) => void) => string[];
 declare const unbindTargets: (vnode: VNode, binding: DirectiveBinding, listenTypes: Dict<boolean>) => void;
+interface ToolTipConfig {
+    animation: boolean;
+    template: string;
+    trigger: string;
+    title: string;
+    delay: number | {
+        show: number;
+        hide: number;
+    };
+    html: boolean;
+    placement: Placement;
+    offset: number;
+    arrowPadding: number | string;
+    container: boolean | string;
+    fallbackPlacement: Behavior;
+    callbacks: Dict<Function>;
+    boundary: HTMLElement | Boundary;
+    boundaryPadding: number;
+    content: string;
+}
 export * from 'vue';
 export * from 'vue/types/options';
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export * from "fbe932e6";
-export { ElementClass, Primitive, BooleanLike, NumberLike, Dict, from, isArray, arrayIncludes, concat, assign, getOwnPropertyNames, keys, defineProperties, defineProperty, freeze, getOwnPropertyDescriptor, getOwnPropertySymbols, getPrototypeOf, create, isFrozen, is, isObject, isPlainObject, omit, readonlyDescriptor, deepFreeze, hasOwnProperty, BvEvent, cloneDeep, hasWindowSupport, hasDocumentSupport, hasNavigatorSupport, hasPromiseSupport, hasMutationObserverSupport, isBrowser, userAgent, isJSDOM, isIE, hasPassiveEventSupport, hasTouchSupport, hasPointerEventSupport, hasIntersectionObserverSupport, getEnv, getNoWarn, warn, warnNotClient, warnNoPromiseSupport, warnNoMutationObserverSupport, functionalComponent, checkMultipleVue, PropsDef, VueElement, VueExtended, BvInstance, get, BV_CONFIG_PROP_NAME, memoize, getConfig, getConfigValue, getComponentConfig, getBreakpoints, getBreakpointsCached, getBreakpointsUp, getBreakpointsUpCached, getBreakpointsDown, getBreakpointsDownCached, toType, toRawType, toRawTypeLC, isUndefined, isNull, isFunction, isBoolean, isString, isNumber, isPrimitive, isDate, isRegExp, isPromise, isVueElement, isElement, matchesEl, matches, closestEl, requestAF, MutationObs, parseEventOptions, eventOn, eventOff, contains, reflow, selectAll, select, closest, getById, addClass, removeClass, hasClass, setAttr, removeAttr, getAttr, hasAttr, getBCR, getCS, offset, position, isVisible, isDisabled, noop, TestNever1, TestNever2, TestNever3, TestPartial1, TestPartial2, TestPartial3, ToolTipConfig, toString, stringifyQueryObj, parseQuery, isRouterLink, computeTag, computeRel, computeHref, bindTargets, unbindTargets, getTargets };
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export * from "5cd47ea1";
+export { ElementClass, Primitive, BooleanLike, NumberLike, Dict, from, isArray, arrayIncludes, concat, assign, getOwnPropertyNames, keys, defineProperties, defineProperty, freeze, getOwnPropertyDescriptor, getOwnPropertySymbols, getPrototypeOf, create, isFrozen, is, isObject, isPlainObject, omit, readonlyDescriptor, deepFreeze, hasOwnProperty, BvEvent, cloneDeep, hasWindowSupport, hasDocumentSupport, hasNavigatorSupport, hasPromiseSupport, hasMutationObserverSupport, isBrowser, userAgent, isJSDOM, isIE, hasPassiveEventSupport, hasTouchSupport, hasPointerEventSupport, hasIntersectionObserverSupport, getEnv, getNoWarn, warn, warnNotClient, warnNoPromiseSupport, warnNoMutationObserverSupport, functionalComponent, checkMultipleVue, PropsDef, VueElement, VueExtended, BvInstance, get, BV_CONFIG_PROP_NAME, memoize, getConfig, getConfigValue, getComponentConfig, getBreakpoints, getBreakpointsCached, getBreakpointsUp, getBreakpointsUpCached, getBreakpointsDown, getBreakpointsDownCached, toType, toRawType, toRawTypeLC, isUndefined, isNull, isFunction, isBoolean, isString, isNumber, isPrimitive, isDate, isRegExp, isPromise, isVueElement, isElement, matchesEl, matches, closestEl, requestAF, MutationObs, parseEventOptions, eventOn, eventOff, contains, reflow, selectAll, select, closest, getById, addClass, removeClass, hasClass, setAttr, removeAttr, getAttr, hasAttr, getBCR, getCS, offset, position, isVisible, isDisabled, Directive, noop, TestNever1, TestNever2, TestNever3, observeDom, TestPartial1, TestPartial2, TestPartial3, toString, stringifyQueryObj, parseQuery, isRouterLink, computeTag, computeRel, computeHref, bindTargets, unbindTargets, getTargets, ToolTipConfig };

@@ -1,5 +1,4 @@
-import { T as ToolTip, z as getComponentConfig, b as isString, s as isFunction, A as isObject, l as keys, C as select, E as addClass, F as removeClass, G as isNull, H as getAttr } from '../../chunks/5cd47ea1.js';
-import 'vue';
+import { T as ToolTip, z as getComponentConfig, b as isString, s as isFunction, A as isObject, l as keys, C as select, E as addClass, F as removeClass, G as isNull, H as getAttr } from './5cd47ea1.js';
 
 const NAME = 'popover';
 const CLASS_PREFIX = 'bs-popover';
@@ -199,5 +198,4 @@ class PopOver extends ToolTip {
  */
 const VBPopover = PopOver.GetBvDirective();
 
-export default VBPopover;
-export { PopOver, VBPopover };
+export { PopOver as P, VBPopover as V, VBPopover as a };

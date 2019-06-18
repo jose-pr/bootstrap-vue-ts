@@ -1,4 +1,4 @@
-import { n as functionalComponent } from './fbe932e6.js';
+import { n as functionalComponent } from './5cd47ea1.js';
 
 const props = {
     tag: {

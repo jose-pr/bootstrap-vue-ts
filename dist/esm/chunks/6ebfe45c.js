@@ -1,8 +1,9 @@
-import { i as installFactory, p as pluginFactory } from './ca461e24.js';
-import { l as link } from './ef49def3.js';
-import { B as BNavbarNav, a as BNavbar } from './9a621529.js';
-import { V as VBModal } from './e2797630.js';
-import { V as VBPopover } from './cbc00e7e.js';
+import { i as installFactory, p as pluginFactory } from './dafa5b20.js';
+import { l as link } from './fca9d7f0.js';
+import { B as BNavbarNav, a as BNavbar } from './87e7097d.js';
+import { V as VBModal } from './ef478248.js';
+import { V as VBPopover } from './3e54c52b.js';
+import { V as VBScrollspy } from './e6721ef6.js';
 
 const LinkComponents = {
     BLink: link
@@ -63,9 +64,22 @@ const VBpopoverPlugin = {
     })
 };
 
+const VBscrollspyDirectives = {
+    VBScrollspy: VBScrollspy
+};
+//
+//Plugin
+//
+const VBscrollspyPlugin = {
+    install: installFactory({
+        components: VBscrollspyDirectives
+    })
+};
+
 const DirectivePlugins = {
     VBmodalPlugin,
-    VBpopoverPlugin
+    VBpopoverPlugin,
+    VBscrollspyPlugin
 };
 const DirectivesPlugin = {
     install: installFactory({
@@ -76,4 +90,4 @@ const DirectivesPlugin = {
 //
 const BVConfigPlugin = /* #__PURE__ */ pluginFactory();
 
-export { BVConfigPlugin as B, ComponentsPlugin as C, DirectivesPlugin as D, LinkComponents as L, NavbarComponents as N, VBmodalDirectives as V, ComponentPlugins as a, LinkPlugin as b, NavbarPlugin as c, DirectivePlugins as d, VBmodalPlugin as e, VBpopoverDirectives as f, VBpopoverPlugin as g };
+export { BVConfigPlugin as B, ComponentsPlugin as C, DirectivesPlugin as D, LinkComponents as L, NavbarComponents as N, VBmodalDirectives as V, ComponentPlugins as a, LinkPlugin as b, NavbarPlugin as c, DirectivePlugins as d, VBmodalPlugin as e, VBpopoverDirectives as f, VBpopoverPlugin as g, VBscrollspyDirectives as h, VBscrollspyPlugin as i };

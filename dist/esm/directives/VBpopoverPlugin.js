@@ -1,9 +1,9 @@
-import '../chunks/fbe932e6.js';
+import '../chunks/5cd47ea1.js';
 import 'vue';
-import '../chunks/04377600.js';
-import { i as installFactory } from '../chunks/ca461e24.js';
-import { V as VBPopover } from '../chunks/cbc00e7e.js';
-export { a as VBPopover } from '../chunks/cbc00e7e.js';
+import '../chunks/87e3debe.js';
+import { i as installFactory } from '../chunks/dafa5b20.js';
+import { V as VBPopover } from '../chunks/3e54c52b.js';
+export { P as PopOver, a as VBPopover } from '../chunks/3e54c52b.js';
 
 const VBpopoverDirectives = {
     VBPopover: VBPopover

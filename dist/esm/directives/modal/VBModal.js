@@ -1,4 +1,4 @@
-import { u as bindTargets, v as unbindTargets, x as removeAttr, y as setAttr } from '../../chunks/fbe932e6.js';
+import { u as bindTargets, v as unbindTargets, x as removeAttr, y as setAttr } from '../../chunks/5cd47ea1.js';
 import 'vue';
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */

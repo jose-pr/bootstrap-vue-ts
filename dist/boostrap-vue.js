@@ -1203,6 +1203,9 @@
   const hasWindowSupport = typeof window !== 'undefined';
   const hasDocumentSupport = typeof document !== 'undefined';
   const hasNavigatorSupport = typeof navigator !== 'undefined';
+  const hasMutationObserverSupport = typeof MutationObserver !== 'undefined' ||
+      typeof WebKitMutationObserver !== 'undefined' ||
+      typeof MozMutationObserver !== 'undefined';
   const isBrowser = hasWindowSupport && hasDocumentSupport && hasNavigatorSupport;
   // Browser type sniffing
   const userAgent = isBrowser ? window.navigator.userAgent.toLowerCase() : '';
@@ -1258,6 +1261,21 @@
   const warn = (message) => /* istanbul ignore next */ {
       if (!getNoWarn()) {
           console.warn(`[BootstrapVue warn]: ${message}`);
+      }
+  };
+  /**
+   * Warn when no MutationObserver support is given
+   * @param {string} source
+   * @returns {boolean} warned
+   */
+  const warnNoMutationObserverSupport = (source) => {
+      /* istanbul ignore else */
+      if (hasMutationObserverSupport) {
+          return false;
+      }
+      else {
+          warn(`${source}: Requires MutationObserver support.`);
+          return true;
       }
   };
 
@@ -1578,6 +1596,8 @@
       }
       return parent.contains(child);
   };
+  // Select all elements matching selector. Returns `[]` if none found
+  const selectAll = (selector, root) => from((isElement(root) ? root : d).querySelectorAll(selector));
   // Select a single element, returns `null` if not found
   const select = (selector, root) => !selector ? null : (isElement(root) ? root : d).querySelector(selector) || null;
   // Finds closest element matching selector. Returns `null` if not found
@@ -1620,7 +1640,7 @@
   // Set an attribute on an element
   const setAttr = (el, attr, value) => {
       if (attr && isElement(el)) {
-          el.setAttribute(attr, value);
+          el.setAttribute(attr, value || '');
       }
   };
   // Remove an attribute from an element
@@ -1641,6 +1661,62 @@
   const getCS = (el) => 
   // eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
   hasWindowSupport && isElement(el) ? w.getComputedStyle(el) : {};
+  // Return an element's offset with respect to document element
+  // https://j11y.io/jquery/#v=git&fn=jQuery.fn.offset
+  const offset = (el) => /* istanbul ignore next: getBoundingClientRect(), getClientRects() doesn't work in JSDOM */ {
+      let _offset = { top: 0, left: 0 };
+      if (!isElement(el) || el.getClientRects().length === 0) {
+          return _offset;
+      }
+      const bcr = getBCR(el);
+      if (bcr) {
+          if (el.ownerDocument) {
+              const win = el.ownerDocument.defaultView;
+              if (win) {
+                  _offset.top = bcr.top + win.pageYOffset;
+                  _offset.left = bcr.left + win.pageXOffset;
+              }
+          }
+      }
+      return _offset;
+  };
+  // Return an element's offset with respect to to it's offsetParent
+  // https://j11y.io/jquery/#v=git&fn=jQuery.fn.position
+  const position = (el) => /* istanbul ignore next: getBoundingClientRect() doesn't work in JSDOM */ {
+      let _offset = { top: 0, left: 0 };
+      if (!isElement(el)) {
+          return _offset;
+      }
+      let parentOffset = { top: 0, left: 0 };
+      const elStyles = getCS(el);
+      if (elStyles.position === 'fixed') {
+          _offset = getBCR(el) || _offset;
+      }
+      else {
+          _offset = offset(el);
+          const doc = el.ownerDocument;
+          if (doc) {
+              let offsetParent = el.offsetParent || doc.documentElement;
+              while (offsetParent &&
+                  (offsetParent === doc.body || offsetParent === doc.documentElement) &&
+                  getCS(offsetParent).position === 'static') {
+                  offsetParent = offsetParent.parentNode;
+              }
+              if (offsetParent && offsetParent !== el && offsetParent.nodeType === Node.ELEMENT_NODE) {
+                  parentOffset = offset(offsetParent);
+                  const offsetParentStyles = getCS(offsetParent);
+                  if (offsetParentStyles) {
+                      parentOffset.top += parseFloat(offsetParentStyles.borderTopWidth || '');
+                      parentOffset.left += parseFloat(offsetParentStyles.borderLeftWidth || '');
+                  }
+              }
+          }
+      }
+      return {
+          top: _offset.top - parentOffset.top - parseFloat(elStyles.marginTop || ''),
+          left: _offset.left - parentOffset.left - parseFloat(elStyles.marginLeft || '')
+      };
+  };
   // Determine if an HTML element is visible - Faster than CSS check
   const isVisible = (el) => {
       if (!isElement(el) || !contains(d.body, el)) {
@@ -1660,10 +1736,422 @@
   // Determine if an element is disabled
   const isDisabled = (el) => !isElement(el) || el.disabled || Boolean(getAttr(el, 'disabled')) || hasClass(el, 'disabled');
 
+  /*
+   * Utility Methods
+   */
+  // Better var type detection
+  function toType$1(obj) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      return {}.toString
+          .call(obj)
+          .match(/\s([a-zA-Z]+)/)[1]
+          .toLowerCase();
+  }
+  // Check config properties for expected types
+  function typeCheckConfig(componentName, config, configTypes) {
+      for (const property in configTypes) {
+          if (Object.prototype.hasOwnProperty.call(configTypes, property)) {
+              const expectedTypes = configTypes[property];
+              const value = config[property];
+              let valueType = value && isElement(value) ? 'element' : toType$1(value);
+              // handle Vue instances
+              valueType = value && value._isVue ? 'component' : valueType;
+              if (!new RegExp(expectedTypes).test(valueType)) {
+                  /* istanbul ignore next */
+                  warn(`${componentName}: Option "${property}" provided type "${valueType}" but expected type "${expectedTypes}"`);
+              }
+          }
+      }
+  }
+  class Directive {
+      // Main constructor
+      constructor(element, config, $root) {
+          this.clearProps();
+          this.$element = element;
+          this.$timeouts = {};
+          this.$intervals = {};
+          this.init();
+          this.updateConfig(config, $root);
+      }
+      init() { }
+      static get NAME() {
+          return '';
+      }
+      get name() {
+          return this.constructor.NAME;
+      }
+      get defaultConfig() {
+          return this.constructor.DEFAULT;
+      }
+      getStaticProp(name) {
+          return this.constructor[name];
+      }
+      static get DEFAULT() {
+          return {};
+      }
+      static get DEFAULT_TYPE() {
+          return undefined;
+      }
+      static ParseBindings(bindings) {
+          return undefined;
+      }
+      static get ElementHoldingProp() {
+          return `__BV_${this.NAME}__`;
+      }
+      static ValidateApply(element, config, $root) {
+          return true;
+      }
+      static Dispose(el) {
+          // Remove PopOver on our element
+          let current = el[this.ElementHoldingProp];
+          if (current instanceof this) {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              current.dispose();
+              el[this.ElementHoldingProp] = undefined;
+              delete el[this.ElementHoldingProp];
+          }
+      }
+      static Apply(el, bindings, vnode) {
+          if (!isBrowser || !this.call) {
+              /* istanbul ignore next */
+              return;
+          }
+          let constructor = this;
+          let name = this.ElementHoldingProp;
+          if (this.ValidateApply(el, bindings, vnode))
+              return;
+          const config = this.ParseBindings(bindings);
+          if (!config)
+              return;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let current = el[name];
+          if (current instanceof Directive) {
+              current.updateConfig(config);
+          }
+          else {
+              if (!vnode.context)
+                  return // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  ;
+              el[name] = new constructor(el, config, vnode.context.$root);
+          }
+      }
+      preUpdateConfig() { }
+      postUpdateConfig() { }
+      updateConfig(config, $root) {
+          this.preUpdateConfig();
+          this.unListen();
+          let constructor = this.constructor;
+          const cfg = this.processConfig(Object.assign({}, constructor.DEFAULT, config));
+          if ($root) {
+              this.$root = $root;
+          }
+          if (constructor.DEFAULT_TYPE) {
+              typeCheckConfig(constructor.NAME, cfg, constructor.DEFAULT_TYPE);
+          }
+          this.$config = cfg;
+          this.listen();
+          this.postUpdateConfig();
+      }
+      processConfig(config) {
+          return config;
+      }
+      clearProps() {
+          let obj = this;
+          if (this.$timeouts)
+              Object.entries(obj).forEach(([, value]) => clearTimeout(value));
+          if (this.$intervals)
+              Object.entries(obj).forEach(([, value]) => clearInterval(value));
+          Object.keys(obj).forEach(k => {
+              let prop = k;
+              if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+                  //@ts-ignore
+                  obj[prop] = undefined;
+              }
+          });
+      }
+      dispose() {
+          this.preDispose();
+          this.unListen();
+          this.clearProps();
+          this.postDispose();
+      }
+      preDispose() { }
+      postDispose() { }
+      listen() { }
+      unListen() { }
+      activeTimeout(name) {
+          return !isUndefined(this.$timeouts) && !isUndefined(this.$timeouts[name]);
+      }
+      activeInterval(name) {
+          return !isUndefined(this.$intervals) && !isUndefined(this.$intervals[name]);
+      }
+      setTimeout(name, handler, timeout, ...args) {
+          if (!this.$timeouts) {
+              this.$timeouts = {};
+          }
+          let id = setTimeout(handler, timeout, ...args);
+          this.$timeouts[name] = id;
+          return id;
+      }
+      clearTimeout(name) {
+          if (!this.$timeouts) {
+              return;
+          }
+          clearTimeout(this.$timeouts[name]);
+      }
+      setInterval(name, handler, timeout, ...args) {
+          if (!this.$intervals) {
+              this.$intervals = {};
+          }
+          let id = setInterval(handler, timeout, ...args);
+          this.$intervals[name] = id;
+          return id;
+      }
+      clearInterval(name) {
+          if (!this.$intervals) {
+              return;
+          }
+          clearTimeout(this.$intervals[name]);
+          this.$intervals[name] = undefined;
+      }
+      static GetBvDirective() {
+          let constructor = this;
+          return {
+              bind(el, bindings, vnode) {
+                  constructor.Apply(el, bindings, vnode);
+              },
+              inserted(el, bindings, vnode) {
+                  constructor.Apply(el, bindings, vnode);
+              },
+              update(el, bindings, vnode) {
+                  if (bindings.value !== bindings.oldValue) {
+                      constructor.Apply(el, bindings, vnode);
+                  }
+              },
+              componentUpdated(el, bindings, vnode) {
+                  if (bindings.value !== bindings.oldValue) {
+                      constructor.Apply(el, bindings, vnode);
+                  }
+              },
+              unbind(el) {
+                  constructor.Dispose(el);
+              }
+          };
+      }
+  }
+
   const noop = () => { };
+
+  /**
+   * Observe a DOM element changes, falls back to eventListener mode
+   * @param {Element} el The DOM element to observe
+   * @param {Function} callback callback to be called on change
+   * @param {object} [opts={childList: true, subtree: true}] observe options
+   * @see http://stackoverflow.com/questions/3219758
+   */
+  const observeDom = (el, callback, opts) => /* istanbul ignore next: difficult to test in JSDOM */ {
+      // Handle cases where we might be passed a Vue instance
+      el = el ? el.$el || el : null;
+      // Early exit when we have no element
+      /* istanbul ignore next: difficult to test in JSDOM */
+      if (!isElement(el)) {
+          return null;
+      }
+      // Exit and throw a warning when `MutationObserver` isn't available
+      if (warnNoMutationObserverSupport('observeDom')) {
+          return null;
+      }
+      // Define a new observer
+      const obs = new MutationObs((mutations) => {
+          let changed = false;
+          // A mutation can contain several change records, so we loop
+          // through them to see what has changed
+          // We break out of the loop early if any "significant" change
+          // has been detected
+          for (let i = 0; i < mutations.length && !changed; i++) {
+              // The mutation record
+              const mutation = mutations[i];
+              // Mutation type
+              const type = mutation.type;
+              // DOM node (could be any DOM node type - HTMLElement, Text, comment, etc.)
+              const target = mutation.target;
+              // Detect whether a change happened based on type and target
+              if (type === 'characterData' && target.nodeType === Node.TEXT_NODE) {
+                  // We ignore nodes that are not TEXT (i.e. comments, etc)
+                  // as they don't change layout
+                  changed = true;
+              }
+              else if (type === 'attributes') {
+                  changed = true;
+              }
+              else if (type === 'childList' &&
+                  (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)) {
+                  // This includes HTMLElement and text nodes being
+                  // added/removed/re-arranged
+                  changed = true;
+              }
+          }
+          // We only call the callback if a change that could affect
+          // layout/size truely happened
+          if (changed) {
+              callback();
+          }
+      });
+      // Have the observer observe foo for changes in children, etc
+      obs.observe(el, Object.assign({ childList: true, subtree: true }, opts));
+      // We return a reference to the observer so that `obs.disconnect()`
+      // can be called if necessary
+      // To reduce overhead when the root element is hidden
+      return obs;
+  };
 
   const TestPartial1 = () => {
       return 'TEST PARTIAL 1';
+  };
+
+  /**
+   * Convert a value to a string that can be rendered.
+   */
+  const toString$1 = (val, spaces = 2) => {
+      return isUndefined(val) || isNull(val)
+          ? ''
+          : isArray$3(val) || (isPlainObject(val) && val.toString === Object.prototype.toString)
+              ? JSON.stringify(val, null, spaces)
+              : String(val);
+  };
+
+  const ANCHOR_TAG = 'a';
+  // Precompile RegExp
+  const commaRE = /%2C/g;
+  const encodeReserveRE = /[!'()*]/g;
+  // Method to replace reserved chars
+  const encodeReserveReplacer = (c) => '%' + c.charCodeAt(0).toString(16);
+  // Fixed encodeURIComponent which is more conformant to RFC3986:
+  // - escapes [!'()*]
+  // - preserve commas
+  const encode = (str) => encodeURIComponent(toString$1(str))
+      .replace(encodeReserveRE, encodeReserveReplacer)
+      .replace(commaRE, ',');
+  // Stringifies an object of query parameters
+  // See: https://github.com/vuejs/vue-router/blob/dev/src/util/query.js
+  const stringifyQueryObj = (obj) => {
+      if (!isPlainObject(obj)) {
+          return '';
+      }
+      const query = keys$1(obj)
+          .map(key => {
+          const val = obj[key];
+          if (isUndefined(val)) {
+              return '';
+          }
+          else if (isNull(val)) {
+              return encode(key);
+          }
+          else if (isArray$3(val)) {
+              return val
+                  .reduce((results, val2) => {
+                  if (isNull(val2)) {
+                      results.push(encode(key));
+                  }
+                  else if (!isUndefined(val2)) {
+                      // Faster than string interpolation
+                      results.push(encode(key) + '=' + encode(val2));
+                  }
+                  return results;
+              }, [])
+                  .join('&');
+          }
+          // Faster than string interpolation
+          return encode(key) + '=' + encode(val);
+      })
+          /* must check for length, as we only want to filter empty strings, not things that look falsey! */
+          .filter(x => x.length > 0)
+          .join('&');
+      return query ? `?${query}` : '';
+  };
+  const isRouterLink = (tag) => tag !== ANCHOR_TAG;
+  const computeTag = ({ to, disabled } = {}, thisOrParent) => {
+      return thisOrParent.$router && to && !disabled
+          ? thisOrParent.$nuxt
+              ? 'nuxt-link'
+              : 'router-link'
+          : ANCHOR_TAG;
+  };
+  const computeRel = ({ target, rel } = {}) => {
+      if (target === '_blank' && isNull(rel)) {
+          return 'noopener';
+      }
+      return rel || null;
+  };
+  const computeHref = ({ href, to } = {}, tag = ANCHOR_TAG, fallback = '#', toFallback = '/') => {
+      // We've already checked the $router in computeTag(), so isRouterLink() indicates a live router.
+      // When deferring to Vue Router's router-link, don't use the href attribute at all.
+      // We return null, and then remove href from the attributes passed to router-link
+      if (isRouterLink(tag)) {
+          return null;
+      }
+      // Return `href` when explicitly provided
+      if (href) {
+          return href;
+      }
+      // Reconstruct `href` when `to` used, but no router
+      if (to) {
+          // Fallback to `to` prop (if `to` is a string)
+          if (isString(to)) {
+              return to || toFallback;
+          }
+          // Fallback to `to.path + to.query + to.hash` prop (if `to` is an object)
+          let _to = to;
+          if (isPlainObject(to) && (_to.path || _to.query || _to.hash)) {
+              const path = toString$1(_to.path);
+              const query = stringifyQueryObj(_to.query);
+              let hash = toString$1(_to.hash);
+              hash = !hash || hash.charAt(0) === '#' ? hash : `#${hash}`;
+              return `${path}${query}${hash}` || toFallback;
+          }
+      }
+      // If nothing is provided return the fallback
+      return fallback;
+  };
+
+  const allListenTypes = { hover: true, click: true, focus: true };
+  const BVBoundListeners = '__BV_boundEventListeners__';
+  const getTargets = (binding) => {
+      const targets = keys$1(binding.modifiers || {}).filter(t => !allListenTypes[t]);
+      if (binding.value) {
+          targets.push(binding.value);
+      }
+      return targets;
+  };
+  const bindTargets = (vnode, binding, listenTypes, fn) => {
+      const targets = getTargets(binding);
+      const listener = () => {
+          fn({ targets, vnode });
+      };
+      keys$1(allListenTypes).forEach(type => {
+          if (listenTypes[type] || binding.modifiers[type]) {
+              let el = vnode.elm;
+              eventOn(el, type, listener);
+              const boundListeners = el[BVBoundListeners] || {};
+              boundListeners[type] = boundListeners[type] || [];
+              boundListeners[type].push(listener);
+              el[BVBoundListeners] = boundListeners;
+          }
+      });
+      // Return the list of targets
+      return targets;
+  };
+  const unbindTargets = (vnode, binding, listenTypes) => {
+      keys$1(allListenTypes).forEach(type => {
+          if (listenTypes[type] || binding.modifiers[type]) {
+              let el = vnode.elm;
+              const boundListeners = el[BVBoundListeners] && el[BVBoundListeners][type];
+              if (boundListeners) {
+                  boundListeners.forEach(listener => eventOff(el, type, listener));
+                  delete el[BVBoundListeners][type];
+              }
+          }
+      });
   };
 
   /**!
@@ -3474,7 +3962,7 @@
    * The offset value as described in the modifier description
    * @returns {Object} The data object, properly modified
    */
-  function offset(data, _ref) {
+  function offset$1(data, _ref) {
     var offset = _ref.offset;
     var placement = data.placement,
         _data$offsets = data.offsets,
@@ -3759,7 +4247,7 @@
       /** @prop {Boolean} enabled=true - Whether the modifier is enabled or not */
       enabled: true,
       /** @prop {ModifierFn} */
-      fn: offset,
+      fn: offset$1,
       /** @prop {Number|String} offset=0
        * The offset value as described in the modifier description
        */
@@ -4348,39 +4836,22 @@
   };
   // Options for Native Event Listeners (since we never call preventDefault)
   const EvtOpts = { passive: true, capture: false };
-  // Client-side tip ID counter for aria-describedby attribute
-  // Each tooltip requires a unique client side ID
-  let NEXTID = 1;
-  /* istanbul ignore next */
-  const generateId = (name) => `__BV_${name}_${NEXTID++}__`;
   /*
    * ToolTip class definition
    */
-  class ToolTip {
+  class ToolTip extends Directive {
       // Main constructor
-      constructor(element, config, $root) {
+      init() {
           this.$isEnabled = true;
-          this.$fadeTimeout = undefined;
-          this.$hoverTimeout = undefined;
-          this.$visibleInterval = undefined;
-          this.$hoverState = '';
           this.$activeTrigger = {};
-          this.$popper = null;
-          this.$tip = null;
-          this.$routeWatcher = null;
           this.$forceHide = this.forceHide.bind(this);
           this.$doHide = this.doHide.bind(this);
           this.$doShow = this.doShow.bind(this);
           this.$doDisable = this.doDisable.bind(this);
           this.$doEnable = this.doEnable.bind(this);
           this._noop = noop.bind(this);
-          this.$config = null;
-          // New tooltip object
-          this.$element = element;
-          this.$id = generateId(this.constructor.NAME);
-          this.$root = $root || null;
-          // Set the configuration
-          this.updateConfig(config);
+          this.$timeouts = { hover: undefined, fade: undefined };
+          this.$intervals = { visible: undefined };
       }
       // NOTE: Overridden by PopOver class
       static get Default() {
@@ -4390,14 +4861,22 @@
       static get NAME() {
           return NAME;
       }
+      static ValidateApply() {
+          if (!Popper) {
+              /* istanbul ignore next */
+              warn('v-b-popover: Popper.js is required for PopOvers to work');
+              /* istanbul ignore next */
+              return false;
+          }
+          return true;
+      }
       // Update config
-      updateConfig(config) {
+      processConfig(config) {
           // Merge config into defaults. We use "this" here because PopOver overrides Default
-          let updatedConfig = Object.assign({}, this.constructor.Default, config);
           // Sanitize delay
           if (config.delay && isNumber(config.delay)) {
               /* istanbul ignore next */
-              updatedConfig.delay = {
+              config.delay = {
                   show: config.delay,
                   hide: config.delay
               };
@@ -4405,55 +4884,30 @@
           // Title for tooltip and popover
           if (config.title && isNumber(config.title)) {
               /* istanbul ignore next */
-              updatedConfig.title = config.title.toString();
+              config.title = config.title.toString();
           }
           // Content only for popover
           if (config.content && isNumber(config.content)) {
               /* istanbul ignore next */
-              updatedConfig.content = config.content.toString();
+              config.content = config.content.toString();
           }
           // Hide element original title if needed
           this.fixTitle();
           // Update the config
-          this.$config = updatedConfig;
-          // Stop/Restart listening
-          this.unListen();
-          this.listen();
+          return config;
       }
       // Destroy this instance
-      destroy() {
-          // Stop listening to trigger events
-          this.unListen();
+      preDispose() {
           // Disable while open listeners/watchers
           this.setWhileOpenListeners(false);
-          // Clear any timeouts
-          clearTimeout(this.$hoverTimeout);
-          this.$hoverTimeout = undefined;
-          clearTimeout(this.$fadeTimeout);
-          this.$fadeTimeout = undefined;
           // Remove popper
           if (this.$popper) {
               this.$popper.destroy();
           }
-          this.$popper = null;
           // Remove tip from document
           if (this.$tip && this.$tip.parentElement) {
               this.$tip.parentElement.removeChild(this.$tip);
           }
-          this.$tip = null;
-          // Null out other properties
-          this.$id = null;
-          this.$isEnabled = null;
-          this.$root = null;
-          this.$element = null;
-          this.$config = null;
-          this.$hoverState = null;
-          this.$activeTrigger = {};
-          this.$forceHide = null;
-          this.$doHide = null;
-          this.$doShow = null;
-          this.$doDisable = null;
-          this.$doEnable = null;
       }
       enable() {
           // Create a non-cancelable BvEvent
@@ -4482,7 +4936,7 @@
               return;
           }
           /* istanbul ignore else */
-          if (event) {
+          if (event && this.$activeTrigger) {
               this.$activeTrigger.click = !this.$activeTrigger.click;
               if (this.isWithActiveTrigger()) {
                   this.enter(null);
@@ -4502,7 +4956,7 @@
       }
       // Show tooltip
       show() {
-          if (!document.body.contains(this.$element) || !isVisible(this.$element)) {
+          if (!this.$element || !document.body.contains(this.$element) || !isVisible(this.$element)) {
               // If trigger element isn't in the DOM or is not visible
               return;
           }
@@ -4513,7 +4967,7 @@
           if (!this.isWithContent(tip)) {
               // If no content, don't bother showing
               /* istanbul ignore next */
-              this.$tip = null;
+              this.$tip = undefined;
               /* istanbul ignore next */
               return;
           }
@@ -4541,7 +4995,7 @@
           this.emitEvent(showEvt);
           if (showEvt.defaultPrevented) {
               // Don't show if event cancelled
-              this.$tip = null;
+              this.$tip = undefined;
               return;
           }
           // Insert tooltip if needed
@@ -4553,14 +5007,14 @@
           this.removePopper();
           this.$popper = this.$element
               ? new Popper(this.$element, tip, this.getPopperConfig(placement, tip))
-              : null;
+              : undefined;
           // Transitionend callback
           const complete = () => {
               if (this.$config && this.$config.animation) {
                   this.fixTransition(tip);
               }
               const prevHoverState = this.$hoverState;
-              this.$hoverState = null;
+              this.$hoverState = undefined;
               if (prevHoverState === HoverState.OUT) {
                   this.leave(null);
               }
@@ -4581,10 +5035,9 @@
       }
       // Handler for periodic visibility check
       visibleCheck(on) {
-          clearInterval(this.$visibleInterval);
-          this.$visibleInterval = undefined;
+          this.clearInterval('visible');
           if (on) {
-              this.$visibleInterval = setInterval(() => {
+              this.setInterval('visible', () => {
                   const tip = this.$tip;
                   if (tip && !isVisible(this.$element) && hasClass(tip, ClassName.SHOW)) {
                       // Element is no longer visible, so force-hide the tooltip
@@ -4620,8 +5073,7 @@
           // Disable while open listeners/watchers
           this.setWhileOpenListeners(false);
           // Clear any hover enter/leave event
-          clearTimeout(this.$hoverTimeout);
-          this.$hoverTimeout = undefined;
+          this.clearTimeout('hover');
           this.$hoverState = '';
           // Hide the tip
           this.hide(null, true);
@@ -4652,7 +5104,7 @@
                   tip.parentNode.removeChild(tip);
                   this.removeAriaDescribedby();
                   this.removePopper();
-                  this.$tip = null;
+                  this.$tip = undefined;
               }
               if (callback) {
                   callback();
@@ -4673,9 +5125,11 @@
           }
           // Hide tip
           removeClass(tip, ClassName.SHOW);
-          this.$activeTrigger.click = false;
-          this.$activeTrigger.focus = false;
-          this.$activeTrigger.hover = false;
+          if (this.$activeTrigger) {
+              this.$activeTrigger.click = false;
+              this.$activeTrigger.focus = false;
+              this.$activeTrigger.hover = false;
+          }
           // Start the hide transition
           this.transitionOnce(tip, complete);
           this.$hoverState = '';
@@ -4733,21 +5187,19 @@
           if (this.$popper) {
               this.$popper.destroy();
           }
-          this.$popper = null;
+          this.$popper = undefined;
       }
       transitionOnce(tip, complete) {
           const transEvents = this.getTransitionEndEvents();
           let called = false;
-          clearTimeout(this.$fadeTimeout);
-          this.$fadeTimeout = undefined;
+          this.clearTimeout('fade');
           const fnOnce = () => {
               if (called) {
                   /* istanbul ignore next */
                   return;
               }
               called = true;
-              clearTimeout(this.$fadeTimeout);
-              this.$fadeTimeout = undefined;
+              this.clearTimeout('fade');
               transEvents.forEach((evtName) => {
                   eventOff(tip, evtName, fnOnce, EvtOpts);
               });
@@ -4759,7 +5211,7 @@
                   eventOn(tip, evtName, fnOnce, EvtOpts);
               });
               // Fallback to setTimeout()
-              this.$fadeTimeout = setTimeout(fnOnce, TRANSITION_DURATION);
+              this.setTimeout('fade', fnOnce, TRANSITION_DURATION);
           }
           else {
               fnOnce();
@@ -4778,7 +5230,7 @@
       }
       /* istanbul ignore next */
       update() {
-          if (!isNull(this.$popper)) {
+          if (!isUndefined(this.$popper)) {
               this.$popper.scheduleUpdate();
           }
       }
@@ -4808,11 +5260,11 @@
       compileTemplate(html) {
           if (!html || !isString(html)) {
               /* istanbul ignore next */
-              return null;
+              return;
           }
           let div = document.createElement('div');
           div.innerHTML = html.trim();
-          const node = div.firstElementChild ? div.removeChild(div.firstElementChild) : null;
+          const node = div.firstElementChild ? div.removeChild(div.firstElementChild) : undefined;
           div = null;
           return node;
       }
@@ -4981,7 +5433,7 @@
               if (this.$routeWatcher) {
                   // Cancel the route watcher by calling the stored reference
                   this.$routeWatcher();
-                  this.$routeWatcher = null;
+                  this.$routeWatcher = undefined;
               }
           }
       }
@@ -5000,14 +5452,10 @@
       setRootListener(on) {
           // Listen for global 'bv::{hide|show}::{tooltip|popover}' hide request event
           if (this.$root) {
-              this.$root[on ? '$on' : '$off'](`bv::hide::${this.constructor.NAME}`, this
-                  .$doHide);
-              this.$root[on ? '$on' : '$off'](`bv::show::${this.constructor.NAME}`, this
-                  .$doShow);
-              this.$root[on ? '$on' : '$off'](`bv::disable::${this.constructor.NAME}`, this
-                  .$doDisable);
-              this.$root[on ? '$on' : '$off'](`bv::enable::${this.constructor.NAME}`, this
-                  .$doEnable);
+              this.$root[on ? '$on' : '$off'](`bv::hide::${this.name}`, this.$doHide);
+              this.$root[on ? '$on' : '$off'](`bv::show::${this.name}`, this.$doShow);
+              this.$root[on ? '$on' : '$off'](`bv::disable::${this.name}`, this.$doDisable);
+              this.$root[on ? '$on' : '$off'](`bv::enable::${this.name}`, this.$doEnable);
           }
       }
       doHide(id) {
@@ -5080,21 +5528,21 @@
       }
       // Enter handler
       enter(e) {
-          if (e) {
+          if (e && this.$activeTrigger) {
               this.$activeTrigger[e.type === 'focusin' ? 'focus' : 'hover'] = true;
           }
           if (hasClass(this.getTipElement(), ClassName.SHOW) || this.$hoverState === HoverState.SHOW) {
               this.$hoverState = HoverState.SHOW;
               return;
           }
-          clearTimeout(this.$hoverTimeout);
+          this.clearTimeout('hover');
           this.$hoverState = HoverState.SHOW;
           let config = this.$config;
           if (config && (!config.delay || !config.delay.show)) {
               this.show();
               return;
           }
-          this.$hoverTimeout = setTimeout(() => {
+          this.setTimeout('hover', () => {
               if (this.$hoverState === HoverState.SHOW) {
                   this.show();
               }
@@ -5105,7 +5553,7 @@
       // Leave handler
       leave(e) {
           let config = this.$config;
-          if (e) {
+          if (e && this.$activeTrigger) {
               this.$activeTrigger[e.type === 'focusout' ? 'focus' : 'hover'] = false;
               if (e.type === 'focusout' && /blur/.test(config.trigger)) {
                   // Special case for `blur`: we clear out the other triggers
@@ -5116,13 +5564,13 @@
           if (this.isWithActiveTrigger()) {
               return;
           }
-          clearTimeout(this.$hoverTimeout);
+          this.clearTimeout('hover');
           this.$hoverState = HoverState.OUT;
           if (!config.delay || (config.delay && !config.delay.hide)) {
               this.hide();
               return;
           }
-          this.$hoverTimeout = setTimeout(() => {
+          this.setTimeout('hover', () => {
               if (this.$hoverState === HoverState.OUT) {
                   this.hide();
               }
@@ -5219,247 +5667,6 @@
           config.animation = initConfigAnimation;
       }
   }
-
-  const NAME$1 = 'popover';
-  const CLASS_PREFIX$1 = 'bs-popover';
-  const BS_CLASS_PREFIX_REGEX$1 = new RegExp(`\\b${CLASS_PREFIX$1}\\S+`, 'g');
-  const Defaults$2 = Object.assign({}, ToolTip.Default, { placement: 'right', trigger: 'click', content: '', template: '<div class="popover" role="tooltip">' +
-          '<div class="arrow"></div>' +
-          '<h3 class="popover-header"></h3>' +
-          '<div class="popover-body"></div></div>' });
-  const ClassName$1 = {
-      FADE: 'fade',
-      SHOW: 'show'
-  };
-  const Selector$1 = {
-      TITLE: '.popover-header',
-      CONTENT: '.popover-body'
-  };
-  class PopOver extends ToolTip {
-      // --- Getter overrides ---
-      static get Default() {
-          return Defaults$2;
-      }
-      static get NAME() {
-          return NAME$1;
-      }
-      // --- Method overrides ---
-      isWithContent(tip) {
-          tip = tip || this.$tip;
-          if (!tip) {
-              /* istanbul ignore next */
-              return false;
-          }
-          const hasTitle = Boolean((select(Selector$1.TITLE, tip) || {}).innerHTML);
-          const hasContent = Boolean((select(Selector$1.CONTENT, tip) || {}).innerHTML);
-          return hasTitle || hasContent;
-      }
-      addAttachmentClass(attachment) {
-          addClass(this.getTipElement(), `${CLASS_PREFIX$1}-${attachment}`);
-      }
-      setContent(tip) {
-          // we use append for html objects to maintain js events/components
-          this.setElementContent(select(Selector$1.TITLE, tip), this.getTitle());
-          this.setElementContent(select(Selector$1.CONTENT, tip), this.getContent());
-          removeClass(tip, ClassName$1.FADE);
-          removeClass(tip, ClassName$1.SHOW);
-      }
-      // This method may look identical to ToolTip version, but it uses a different RegEx defined above
-      cleanTipClass() {
-          const tip = this.getTipElement();
-          const tabClass = tip.className.match(BS_CLASS_PREFIX_REGEX$1);
-          if (!isNull(tabClass) && tabClass.length > 0) {
-              tabClass.forEach((cls) => {
-                  removeClass(tip, cls);
-              });
-          }
-      }
-      getTitle() {
-          let config = this.$config;
-          let title = config.title || '';
-          /* istanbul ignore next */
-          if (isFunction(title)) {
-              title = title(this.$element);
-          }
-          /* istanbul ignore next */
-          if (isObject$1(title) && title.nodeType && !title.innerHTML.trim()) {
-              // We have a dom node, but without inner content, so just return an empty string
-              title = '';
-          }
-          if (isString(title)) {
-              title = title.trim();
-          }
-          if (!title) {
-              // Try and grab element's title attribute
-              title = getAttr(this.$element, 'title') || getAttr(this.$element, 'data-original-title') || '';
-              title = title.trim();
-          }
-          return title;
-      }
-      // New methods
-      getContent() {
-          let config = this.$config;
-          let content = config.content || '';
-          /* istanbul ignore next */
-          if (isFunction(content)) {
-              content = content(this.$element);
-          }
-          /* istanbul ignore next */
-          if (isObject$1(content) && content.nodeType && !content.innerHTML.trim()) {
-              // We have a dom node, but without inner content, so just return an empty string
-              content = '';
-          }
-          if (isString(content)) {
-              content = content.trim();
-          }
-          return content;
-      }
-  }
-
-  /**
-   * Convert a value to a string that can be rendered.
-   */
-  const toString$1 = (val, spaces = 2) => {
-      return isUndefined(val) || isNull(val)
-          ? ''
-          : isArray$3(val) || (isPlainObject(val) && val.toString === Object.prototype.toString)
-              ? JSON.stringify(val, null, spaces)
-              : String(val);
-  };
-
-  const ANCHOR_TAG = 'a';
-  // Precompile RegExp
-  const commaRE = /%2C/g;
-  const encodeReserveRE = /[!'()*]/g;
-  // Method to replace reserved chars
-  const encodeReserveReplacer = (c) => '%' + c.charCodeAt(0).toString(16);
-  // Fixed encodeURIComponent which is more conformant to RFC3986:
-  // - escapes [!'()*]
-  // - preserve commas
-  const encode = (str) => encodeURIComponent(toString$1(str))
-      .replace(encodeReserveRE, encodeReserveReplacer)
-      .replace(commaRE, ',');
-  // Stringifies an object of query parameters
-  // See: https://github.com/vuejs/vue-router/blob/dev/src/util/query.js
-  const stringifyQueryObj = (obj) => {
-      if (!isPlainObject(obj)) {
-          return '';
-      }
-      const query = keys$1(obj)
-          .map(key => {
-          const val = obj[key];
-          if (isUndefined(val)) {
-              return '';
-          }
-          else if (isNull(val)) {
-              return encode(key);
-          }
-          else if (isArray$3(val)) {
-              return val
-                  .reduce((results, val2) => {
-                  if (isNull(val2)) {
-                      results.push(encode(key));
-                  }
-                  else if (!isUndefined(val2)) {
-                      // Faster than string interpolation
-                      results.push(encode(key) + '=' + encode(val2));
-                  }
-                  return results;
-              }, [])
-                  .join('&');
-          }
-          // Faster than string interpolation
-          return encode(key) + '=' + encode(val);
-      })
-          /* must check for length, as we only want to filter empty strings, not things that look falsey! */
-          .filter(x => x.length > 0)
-          .join('&');
-      return query ? `?${query}` : '';
-  };
-  const isRouterLink = (tag) => tag !== ANCHOR_TAG;
-  const computeTag = ({ to, disabled } = {}, thisOrParent) => {
-      return thisOrParent.$router && to && !disabled
-          ? thisOrParent.$nuxt
-              ? 'nuxt-link'
-              : 'router-link'
-          : ANCHOR_TAG;
-  };
-  const computeRel = ({ target, rel } = {}) => {
-      if (target === '_blank' && isNull(rel)) {
-          return 'noopener';
-      }
-      return rel || null;
-  };
-  const computeHref = ({ href, to } = {}, tag = ANCHOR_TAG, fallback = '#', toFallback = '/') => {
-      // We've already checked the $router in computeTag(), so isRouterLink() indicates a live router.
-      // When deferring to Vue Router's router-link, don't use the href attribute at all.
-      // We return null, and then remove href from the attributes passed to router-link
-      if (isRouterLink(tag)) {
-          return null;
-      }
-      // Return `href` when explicitly provided
-      if (href) {
-          return href;
-      }
-      // Reconstruct `href` when `to` used, but no router
-      if (to) {
-          // Fallback to `to` prop (if `to` is a string)
-          if (isString(to)) {
-              return to || toFallback;
-          }
-          // Fallback to `to.path + to.query + to.hash` prop (if `to` is an object)
-          let _to = to;
-          if (isPlainObject(to) && (_to.path || _to.query || _to.hash)) {
-              const path = toString$1(_to.path);
-              const query = stringifyQueryObj(_to.query);
-              let hash = toString$1(_to.hash);
-              hash = !hash || hash.charAt(0) === '#' ? hash : `#${hash}`;
-              return `${path}${query}${hash}` || toFallback;
-          }
-      }
-      // If nothing is provided return the fallback
-      return fallback;
-  };
-
-  const allListenTypes = { hover: true, click: true, focus: true };
-  const BVBoundListeners = '__BV_boundEventListeners__';
-  const getTargets = (binding) => {
-      const targets = keys$1(binding.modifiers || {}).filter(t => !allListenTypes[t]);
-      if (binding.value) {
-          targets.push(binding.value);
-      }
-      return targets;
-  };
-  const bindTargets = (vnode, binding, listenTypes, fn) => {
-      const targets = getTargets(binding);
-      const listener = () => {
-          fn({ targets, vnode });
-      };
-      keys$1(allListenTypes).forEach(type => {
-          if (listenTypes[type] || binding.modifiers[type]) {
-              let el = vnode.elm;
-              eventOn(el, type, listener);
-              const boundListeners = el[BVBoundListeners] || {};
-              boundListeners[type] = boundListeners[type] || [];
-              boundListeners[type].push(listener);
-              el[BVBoundListeners] = boundListeners;
-          }
-      });
-      // Return the list of targets
-      return targets;
-  };
-  const unbindTargets = (vnode, binding, listenTypes) => {
-      keys$1(allListenTypes).forEach(type => {
-          if (listenTypes[type] || binding.modifiers[type]) {
-              let el = vnode.elm;
-              const boundListeners = el[BVBoundListeners] && el[BVBoundListeners][type];
-              if (boundListeners) {
-                  boundListeners.forEach(listener => eventOff(el, type, listener));
-                  delete el[BVBoundListeners][type];
-              }
-          }
-      });
-  };
 
   
 
@@ -5933,8 +6140,21 @@
       })
   };
 
-  // Key which we use to store tooltip object on element
-  const BV_POPOVER = '__BV_PopOver__';
+  const NAME$1 = 'popover';
+  const CLASS_PREFIX$1 = 'bs-popover';
+  const BS_CLASS_PREFIX_REGEX$1 = new RegExp(`\\b${CLASS_PREFIX$1}\\S+`, 'g');
+  const Defaults$2 = Object.assign({}, ToolTip.Default, { placement: 'right', trigger: 'click', content: '', template: '<div class="popover" role="tooltip">' +
+          '<div class="arrow"></div>' +
+          '<h3 class="popover-header"></h3>' +
+          '<div class="popover-body"></div></div>' });
+  const ClassName$1 = {
+      FADE: 'fade',
+      SHOW: 'show'
+  };
+  const Selector$1 = {
+      TITLE: '.popover-header',
+      CONTENT: '.popover-body'
+  };
   // Valid event triggers
   const validTriggers = {
       focus: true,
@@ -5942,154 +6162,181 @@
       click: true,
       blur: true
   };
-  // Build a PopOver config based on bindings (if any)
-  // Arguments and modifiers take precedence over passed value config object
-  /* istanbul ignore next: not easy to test */
-  const parseBindings = (bindings) => /* istanbul ignore next: not easy to test */ {
-      // We start out with a basic config
-      const NAME = 'BPopover';
-      let config = {
-          delay: getComponentConfig(NAME, 'delay'),
-          boundary: String(getComponentConfig(NAME, 'boundary')),
-          boundaryPadding: parseInt(getComponentConfig(NAME, 'boundaryPadding'), 10) || 0
-      };
-      // Process bindings.value
-      if (isString(bindings.value)) {
-          // Value is popover content (html optionally supported)
-          config.content = bindings.value;
+  class PopOver extends ToolTip {
+      // --- Getter overrides ---
+      static get Default() {
+          return Defaults$2;
       }
-      else if (isFunction(bindings.value)) {
-          // Content generator function
-          config.content = bindings.value;
+      static get NAME() {
+          return NAME$1;
       }
-      else if (isObject$1(bindings.value)) {
-          // Value is config object, so merge
-          config = Object.assign({}, config, bindings.value);
-      }
-      // If argument, assume element ID of container element
-      if (bindings.arg) {
-          // Element ID specified as arg
-          // We must prepend '#' to become a CSS selector
-          config.container = `#${bindings.arg}`;
-      }
-      // Process modifiers
-      keys$1(bindings.modifiers).forEach((mod) => {
-          if (/^html$/.test(mod)) {
-              // Title allows HTML
-              config.html = true;
+      // Build a PopOver config based on bindings (if any)
+      // Arguments and modifiers take precedence over passed value config object
+      /* istanbul ignore next: not easy to test */
+      static ParseBindings(bindings) {
+          // We start out with a basic config
+          const NAME = 'BPopover';
+          let config = {
+              delay: getComponentConfig(NAME, 'delay'),
+              boundary: String(getComponentConfig(NAME, 'boundary')),
+              boundaryPadding: parseInt(getComponentConfig(NAME, 'boundaryPadding'), 10) || 0
+          };
+          // Process bindings.value
+          if (isString(bindings.value)) {
+              // Value is popover content (html optionally supported)
+              config.content = bindings.value;
           }
-          else if (/^nofade$/.test(mod)) {
-              // no animation
-              config.animation = false;
+          else if (isFunction(bindings.value)) {
+              // Content generator function
+              config.content = bindings.value;
           }
-          else if (/^(auto|top(left|right)?|bottom(left|right)?|left(top|bottom)?|right(top|bottom)?)$/.test(mod)) {
-              // placement of popover
-              config.placement = mod;
+          else if (isObject$1(bindings.value)) {
+              // Value is config object, so merge
+              config = Object.assign({}, config, bindings.value);
           }
-          else if (/^(window|viewport|scrollParent)$/.test(mod)) {
-              // Boundary of popover
-              config.boundary = mod;
+          // If argument, assume element ID of container element
+          if (bindings.arg) {
+              // Element ID specified as arg
+              // We must prepend '#' to become a CSS selector
+              config.container = `#${bindings.arg}`;
           }
-          else if (/^d\d+$/.test(mod)) {
-              // Delay value
-              const delay = parseInt(mod.slice(1), 10) || 0;
-              if (delay) {
-                  config.delay = delay;
+          // Process modifiers
+          keys$1(bindings.modifiers).forEach((mod) => {
+              if (/^html$/.test(mod)) {
+                  // Title allows HTML
+                  config.html = true;
               }
-          }
-          else if (/^o-?\d+$/.test(mod)) {
-              // Offset value (negative allowed)
-              const offset = parseInt(mod.slice(1), 10) || 0;
-              if (offset) {
-                  config.offset = offset;
+              else if (/^nofade$/.test(mod)) {
+                  // no animation
+                  config.animation = false;
               }
+              else if (/^(auto|top(left|right)?|bottom(left|right)?|left(top|bottom)?|right(top|bottom)?)$/.test(mod)) {
+                  // placement of popover
+                  config.placement = mod;
+              }
+              else if (/^(window|viewport|scrollParent)$/.test(mod)) {
+                  // Boundary of popover
+                  config.boundary = mod;
+              }
+              else if (/^d\d+$/.test(mod)) {
+                  // Delay value
+                  const delay = parseInt(mod.slice(1), 10) || 0;
+                  if (delay) {
+                      config.delay = delay;
+                  }
+              }
+              else if (/^o-?\d+$/.test(mod)) {
+                  // Offset value (negative allowed)
+                  const offset = parseInt(mod.slice(1), 10) || 0;
+                  if (offset) {
+                      config.offset = offset;
+                  }
+              }
+          });
+          // Special handling of event trigger modifiers trigger is
+          // a space separated list
+          const selectedTriggers = {};
+          // Parse current config object trigger
+          let triggers = isString(config.trigger) ? config.trigger.trim().split(/\s+/) : [];
+          triggers.forEach((trigger) => {
+              if (validTriggers[trigger]) {
+                  selectedTriggers[trigger] = true;
+              }
+          });
+          // Parse modifiers for triggers
+          keys$1(validTriggers).forEach((trigger) => {
+              if (bindings.modifiers[trigger]) {
+                  selectedTriggers[trigger] = true;
+              }
+          });
+          // Sanitize triggers
+          config.trigger = keys$1(selectedTriggers).join(' ');
+          if (config.trigger === 'blur') {
+              // Blur by itself is useless, so convert it to focus
+              config.trigger = 'focus';
           }
-      });
-      // Special handling of event trigger modifiers trigger is
-      // a space separated list
-      const selectedTriggers = {};
-      // Parse current config object trigger
-      let triggers = isString(config.trigger) ? config.trigger.trim().split(/\s+/) : [];
-      triggers.forEach((trigger) => {
-          if (validTriggers[trigger]) {
-              selectedTriggers[trigger] = true;
+          if (!config.trigger) {
+              // Remove trigger config
+              delete config.trigger;
           }
-      });
-      // Parse modifiers for triggers
-      keys$1(validTriggers).forEach((trigger) => {
-          if (bindings.modifiers[trigger]) {
-              selectedTriggers[trigger] = true;
+          return config;
+      }
+      // --- Method overrides ---
+      isWithContent(tip) {
+          tip = tip || this.$tip;
+          if (!tip) {
+              /* istanbul ignore next */
+              return false;
           }
-      });
-      // Sanitize triggers
-      config.trigger = keys$1(selectedTriggers).join(' ');
-      if (config.trigger === 'blur') {
-          // Blur by itself is useless, so convert it to focus
-          config.trigger = 'focus';
+          const hasTitle = Boolean((select(Selector$1.TITLE, tip) || {}).innerHTML);
+          const hasContent = Boolean((select(Selector$1.CONTENT, tip) || {}).innerHTML);
+          return hasTitle || hasContent;
       }
-      if (!config.trigger) {
-          // Remove trigger config
-          delete config.trigger;
+      addAttachmentClass(attachment) {
+          addClass(this.getTipElement(), `${CLASS_PREFIX$1}-${attachment}`);
       }
-      return config;
-  };
-  // Add or update PopOver on our element
-  const applyPopover = (el, bindings, vnode) => {
-      if (!isBrowser) {
+      setContent(tip) {
+          // we use append for html objects to maintain js events/components
+          this.setElementContent(select(Selector$1.TITLE, tip), this.getTitle());
+          this.setElementContent(select(Selector$1.CONTENT, tip), this.getContent());
+          removeClass(tip, ClassName$1.FADE);
+          removeClass(tip, ClassName$1.SHOW);
+      }
+      // This method may look identical to ToolTip version, but it uses a different RegEx defined above
+      cleanTipClass() {
+          const tip = this.getTipElement();
+          const tabClass = tip.className.match(BS_CLASS_PREFIX_REGEX$1);
+          if (!isNull(tabClass) && tabClass.length > 0) {
+              tabClass.forEach((cls) => {
+                  removeClass(tip, cls);
+              });
+          }
+      }
+      getTitle() {
+          let config = this.$config;
+          let title = config.title || '';
           /* istanbul ignore next */
-          return;
-      }
-      // Popper is required for PopOvers to work
-      if (!Popper) {
+          if (isFunction(title)) {
+              title = title(this.$element);
+          }
           /* istanbul ignore next */
-          warn('v-b-popover: Popper.js is required for PopOvers to work');
+          if (isObject$1(title) && title.nodeType && !title.innerHTML.trim()) {
+              // We have a dom node, but without inner content, so just return an empty string
+              title = '';
+          }
+          if (isString(title)) {
+              title = title.trim();
+          }
+          if (!title) {
+              // Try and grab element's title attribute
+              title = getAttr(this.$element, 'title') || getAttr(this.$element, 'data-original-title') || '';
+              title = title.trim();
+          }
+          return title;
+      }
+      // New methods
+      getContent() {
+          let config = this.$config;
+          let content = config.content || '';
           /* istanbul ignore next */
-          return;
+          if (isFunction(content)) {
+              content = content(this.$element);
+          }
+          /* istanbul ignore next */
+          if (isObject$1(content) && content.nodeType && !content.innerHTML.trim()) {
+              // We have a dom node, but without inner content, so just return an empty string
+              content = '';
+          }
+          if (isString(content)) {
+              content = content.trim();
+          }
+          return content;
       }
-      const config = parseBindings(bindings);
-      if (el[BV_POPOVER] instanceof PopOver) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          el[BV_POPOVER].updateConfig(config);
-      }
-      else {
-          if (!vnode.context)
-              return;
-          el[BV_POPOVER] = new PopOver(el, config, vnode.context.$root);
-      }
-  };
-  // Remove PopOver on our element
-  const removePopover = (el) => {
-      if (el[BV_POPOVER] instanceof PopOver) {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          el[BV_POPOVER].destroy();
-          el[BV_POPOVER] = undefined;
-          delete el[BV_POPOVER];
-      }
-  };
+  }
   /*
    * Export our directive
    */
-  const VBPopover = {
-      bind(el, bindings, vnode) {
-          applyPopover(el, bindings, vnode);
-      },
-      inserted(el, bindings, vnode) {
-          applyPopover(el, bindings, vnode);
-      },
-      update(el, bindings, vnode) {
-          if (bindings.value !== bindings.oldValue) {
-              applyPopover(el, bindings, vnode);
-          }
-      },
-      componentUpdated(el, bindings, vnode) {
-          if (bindings.value !== bindings.oldValue) {
-              applyPopover(el, bindings, vnode);
-          }
-      },
-      unbind(el) {
-          removePopover(el);
-      }
-  };
+  const VBPopover = PopOver.GetBvDirective();
 
   const VBpopoverDirectives = {
       VBPopover: VBPopover
@@ -6103,9 +6350,424 @@
       })
   };
 
+  /* eslint-disable no-this-before-super */
+  /*
+   * Constants / Defaults
+   */
+  const NAME$2 = 'v-b-scrollspy';
+  const ACTIVATE_EVENT = 'bv::scrollspy::activate';
+  const Default = {
+      element: 'body',
+      offset: 10,
+      method: 'auto',
+      throttle: 75
+  };
+  const DefaultType = {
+      element: '(string|element|component)',
+      offset: 'number',
+      method: 'string',
+      throttle: 'number'
+  };
+  const ClassName$2 = {
+      DROPDOWN_ITEM: 'dropdown-item',
+      ACTIVE: 'active'
+  };
+  const Selector$2 = {
+      ACTIVE: '.active',
+      NAV_LIST_GROUP: '.nav, .list-group',
+      NAV_LINKS: '.nav-link',
+      NAV_ITEMS: '.nav-item',
+      LIST_ITEMS: '.list-group-item',
+      DROPDOWN: '.dropdown, .dropup',
+      DROPDOWN_ITEMS: '.dropdown-item',
+      DROPDOWN_TOGGLE: '.dropdown-toggle'
+  };
+  const OffsetMethod = {
+      OFFSET: 'offset',
+      POSITION: 'position'
+  };
+  // HREFs must end with a hash followed by at least one non-hash character.
+  // HREFs in the links are assumed to point to non-external links.
+  // Comparison to the current page base URL is not performed!
+  const HREF_REGEX = /^.*(#[^#]+)$/;
+  // Transition Events
+  const TransitionEndEvents$1 = [
+      'webkitTransitionEnd',
+      'transitionend',
+      'otransitionend',
+      'oTransitionEnd'
+  ];
+  // Options for events
+  const EventOptions = { passive: true, capture: false };
+  /*
+   * ------------------------------------------------------------------------
+   * Class Definition
+   * ------------------------------------------------------------------------
+   */
+  /* istanbul ignore next: not easy to test */
+  class ScrollSpy extends Directive /* istanbul ignore next: not easy to test */ {
+      init() {
+          this.$offsets = [];
+          this.$targets = [];
+          this.$scrollHeight = 0;
+          this.$selector = [Selector$2.NAV_LINKS, Selector$2.LIST_ITEMS, Selector$2.DROPDOWN_ITEMS].join(',');
+      }
+      static get Name() {
+          return NAME$2;
+      }
+      static get Default() {
+          return Default;
+      }
+      static get DefaultType() {
+          return DefaultType;
+      }
+      // Build a ScrollSpy config based on bindings (if any)
+      // Arguments and modifiers take precedence over passed value config object
+      /* istanbul ignore next: not easy to test */
+      static ParseBindings(bindings) {
+          // eslint-disable-next-line @typescript-eslint/no-object-literal-type-assertion
+          const config = {};
+          // If argument, assume element ID
+          if (bindings.arg) {
+              // Element ID specified as arg
+              // We must prepend '#' to become a CSS selector
+              config.element = `#${bindings.arg}`;
+          }
+          // Process modifiers
+          keys$1(bindings.modifiers).forEach(mod => {
+              if (/^\d+$/.test(mod)) {
+                  // Offset value
+                  config.offset = parseInt(mod, 10);
+              }
+              else if (/^(auto|position|offset)$/.test(mod)) {
+                  // Offset method
+                  config.method = mod;
+              }
+          });
+          // Process value
+          if (isString(bindings.value)) {
+              // Value is a CSS ID or selector
+              config.element = bindings.value;
+          }
+          else if (isNumber(bindings.value)) {
+              // Value is offset
+              config.offset = Math.round(bindings.value);
+          }
+          else if (isObject$1(bindings.value)) {
+              keys$1(bindings.value)
+                  .filter(k => Boolean(ScrollSpy.DefaultType[k]))
+                  .forEach(k => {
+                  config[k] = bindings.value[k];
+              });
+          }
+          return config;
+      }
+      listen() {
+          if (this.$root) {
+              const self = this;
+              this.$root.$nextTick(() => {
+                  self._listen();
+              });
+          }
+          else {
+              this._listen();
+          }
+      }
+      _listen() {
+          const scroller = this.getScroller();
+          if (scroller && scroller.tagName !== 'BODY') {
+              eventOn(scroller, 'scroll', this, EventOptions);
+          }
+          eventOn(window, 'scroll', this, EventOptions);
+          eventOn(window, 'resize', this, EventOptions);
+          eventOn(window, 'orientationchange', this, EventOptions);
+          TransitionEndEvents$1.forEach(evtName => {
+              eventOn(window, evtName, this, EventOptions);
+          });
+          this.setObservers(true);
+          // Schedule a refresh
+          this.handleEvent('refresh');
+      }
+      unlisten() {
+          const scroller = this.getScroller();
+          this.setObservers(false);
+          if (scroller && scroller.tagName !== 'BODY') {
+              eventOff(scroller, 'scroll', this, EventOptions);
+          }
+          eventOff(window, 'scroll', this, EventOptions);
+          eventOff(window, 'resize', this, EventOptions);
+          eventOff(window, 'orientationchange', this, EventOptions);
+          TransitionEndEvents$1.forEach(evtName => {
+              eventOff(window, evtName, this, EventOptions);
+          });
+      }
+      setObservers(on) {
+          // We observe both the scroller for content changes, and the target links
+          if (this.$obsScroller) {
+              this.$obsScroller.disconnect();
+              this.$obsScroller = undefined;
+          }
+          if (this.$obsTargets) {
+              this.$obsTargets.disconnect();
+              this.$obsTargets = undefined;
+          }
+          if (on) {
+              this.$obsTargets =
+                  observeDom(this.$element || null, () => {
+                      this.handleEvent('mutation');
+                  }, {
+                      subtree: true,
+                      childList: true,
+                      attributes: true,
+                      attributeFilter: ['href']
+                  }) || undefined;
+              this.$obsScroller =
+                  observeDom(this.getScroller(), () => {
+                      this.handleEvent('mutation');
+                  }, {
+                      subtree: true,
+                      childList: true,
+                      characterData: true,
+                      attributes: true,
+                      attributeFilter: ['id', 'style', 'class']
+                  }) || undefined;
+          }
+      }
+      // general event handler
+      handleEvent(evt) {
+          const type = isString(evt) ? evt : evt.type;
+          const self = this;
+          function resizeThrottle() {
+              if (!self.activeTimeout('resize') && self.$config) {
+                  self.setTimeout('resize', () => {
+                      self.refresh();
+                      self.process();
+                      self.clearTimeout('resize');
+                  }, self.$config.throttle);
+              }
+          }
+          if (type === 'scroll') {
+              if (!this.$obsScroller) {
+                  // Just in case we are added to the DOM before the scroll target is
+                  // We re-instantiate our listeners, just in case
+                  this.listen();
+              }
+              this.process();
+          }
+          else if (/(resize|orientationchange|mutation|refresh)/.test(type)) {
+              // Postpone these events by throttle time
+              resizeThrottle();
+          }
+      }
+      // Refresh the list of target links on the element we are applied to
+      refresh() {
+          const scroller = this.getScroller();
+          if (!scroller || !this.$config) {
+              return;
+          }
+          const autoMethod = scroller !== scroller.window ? OffsetMethod.POSITION : OffsetMethod.OFFSET;
+          const method = this.$config.method === 'auto' ? autoMethod : this.$config.method;
+          const methodFn = method === OffsetMethod.POSITION ? position : offset;
+          const offsetBase = method === OffsetMethod.POSITION ? this.getScrollTop() : 0;
+          this.$offsets = [];
+          this.$targets = [];
+          this.$scrollHeight = this.getScrollHeight() // Find all the unique link HREFs that we will control // record only unique targets/offsets
+          ;
+          selectAll(String(this.$selector), this.$element)
+              // Get HREF value
+              .map(link => getAttr(link, 'href'))
+              // Filter out HREFs that do not match our RegExp
+              .filter(href => href && HREF_REGEX.test(href || ''))
+              // Find all elements with ID that match HREF hash
+              .map(href => {
+              // Convert HREF into an ID (including # at beginning)
+              const id = href.replace(HREF_REGEX, '$1').trim();
+              if (!id) {
+                  return null;
+              }
+              // Find the element with the ID specified by id
+              const el = select(id, scroller);
+              if (el && isVisible(el)) {
+                  return {
+                      offset: parseInt(methodFn(el).top.toString(), 10) + offsetBase,
+                      target: id
+                  };
+              }
+              return null;
+          })
+              .filter(Boolean)
+              // Sort them by their offsets (smallest first)
+              .sort((a, b) => a.offset - b.offset)
+              .reduce((memo, item) => {
+              if (!memo[item.target] && this.$offsets && this.$targets) {
+                  this.$offsets.push(item.offset);
+                  this.$targets.push(item.target);
+                  memo[item.target] = true;
+              }
+              return memo;
+          }, {});
+          // Return this for easy chaining
+          return this;
+      }
+      // Handle activating/clearing
+      process() {
+          if (!this.$config)
+              return;
+          const scrollTop = this.getScrollTop() + this.$config.offset;
+          const scrollHeight = this.getScrollHeight();
+          const maxScroll = this.$config.offset + scrollHeight - this.getOffsetHeight();
+          if (this.$scrollHeight !== scrollHeight) {
+              this.refresh();
+          }
+          if (scrollTop >= maxScroll && this.$targets) {
+              const target = this.$targets[this.$targets.length - 1];
+              if (this.$activeTarget !== target) {
+                  this.activate(target);
+              }
+              return;
+          }
+          if (this.$offsets &&
+              this.$activeTarget &&
+              scrollTop < this.$offsets[0] &&
+              this.$offsets[0] > 0) {
+              this.$activeTarget = undefined;
+              this.clear();
+              return;
+          }
+          if (!this.$offsets || !this.$targets)
+              return;
+          for (let i = this.$offsets.length; i--;) {
+              const isActiveTarget = this.$activeTarget !== this.$targets[i] &&
+                  scrollTop >= this.$offsets[i] &&
+                  (isUndefined(this.$offsets[i + 1]) || scrollTop < this.$offsets[i + 1]);
+              if (isActiveTarget) {
+                  this.activate(this.$targets[i]);
+              }
+          }
+      }
+      getScroller() {
+          if (this.$scroller) {
+              return this.$scroller;
+          }
+          let scroller = this.$config
+              ? this.$config.element
+              : undefined;
+          if (!scroller) {
+              return undefined;
+          }
+          else if (isElement(scroller.$el)) {
+              scroller = scroller.$el;
+          }
+          else if (isString(scroller)) {
+              scroller = select(scroller);
+          }
+          if (!scroller) {
+              return undefined;
+          }
+          this.$scroller =
+              scroller.tagName === 'BODY' ? window : scroller;
+          return this.$scroller;
+      }
+      getScrollTop() {
+          const scroller = this.getScroller();
+          return scroller === window ? scroller.pageYOffset : scroller.scrollTop;
+      }
+      getScrollHeight() {
+          return (this.getScroller().scrollHeight ||
+              Math.max(document.body.scrollHeight, document.documentElement.scrollHeight));
+      }
+      getOffsetHeight() {
+          const scroller = this.getScroller();
+          return scroller === window || !scroller
+              ? window.innerHeight
+              : getBCR(scroller).height;
+      }
+      activate(target) {
+          this.$activeTarget = target;
+          this.clear();
+          // Grab the list of target links (<a href="{$target}">)
+          const links = selectAll((this.$selector || '')
+              // Split out the base selectors
+              .split(',')
+              // Map to a selector that matches links with HREF ending in the ID (including '#')
+              .map(selector => `${selector}[href$="${target}"]`)
+              // Join back into a single selector string
+              .join(','), this.$element);
+          links.forEach(link => {
+              if (hasClass(link, ClassName$2.DROPDOWN_ITEM)) {
+                  // This is a dropdown item, so find the .dropdown-toggle and set it's state
+                  const dropdown = closest(Selector$2.DROPDOWN, link);
+                  if (dropdown) {
+                      this.setActiveState(select(Selector$2.DROPDOWN_TOGGLE, dropdown), true);
+                  }
+                  // Also set this link's state
+                  this.setActiveState(link, true);
+              }
+              else {
+                  // Set triggered link as active
+                  this.setActiveState(link, true);
+                  if (matches(link.parentElement, Selector$2.NAV_ITEMS)) {
+                      // Handle nav-link inside nav-item, and set nav-item active
+                      this.setActiveState(link.parentElement, true);
+                  }
+                  // Set triggered links parents as active
+                  // With both <ul> and <nav> markup a parent is the previous sibling of any nav ancestor
+                  let el = link;
+                  while (el) {
+                      el = closest(Selector$2.NAV_LIST_GROUP, el);
+                      const sibling = el ? el.previousElementSibling : null;
+                      if (sibling && matches(sibling, `${Selector$2.NAV_LINKS}, ${Selector$2.LIST_ITEMS}`)) {
+                          this.setActiveState(sibling, true);
+                      }
+                      // Handle special case where nav-link is inside a nav-item
+                      if (sibling && matches(sibling, Selector$2.NAV_ITEMS)) {
+                          this.setActiveState(select(Selector$2.NAV_LINKS, sibling), true);
+                          // Add active state to nav-item as well
+                          this.setActiveState(sibling, true);
+                      }
+                  }
+              }
+          });
+          // Signal event to via $root, passing ID of activated target and reference to array of links
+          if (links && links.length > 0 && this.$root) {
+              this.$root.$emit(ACTIVATE_EVENT, target, links);
+          }
+      }
+      clear() {
+          selectAll(`${this.$selector}, ${Selector$2.NAV_ITEMS}`, this.$element)
+              .filter(el => hasClass(el, ClassName$2.ACTIVE))
+              .forEach(el => this.setActiveState(el, false));
+      }
+      setActiveState(el, active) {
+          if (!el) {
+              return;
+          }
+          if (active) {
+              addClass(el, ClassName$2.ACTIVE);
+          }
+          else {
+              removeClass(el, ClassName$2.ACTIVE);
+          }
+      }
+  }
+  const VBScrollspy = ScrollSpy.GetBvDirective();
+
+  const VBscrollspyDirectives = {
+      VBScrollspy: VBScrollspy
+  };
+  //
+  //Plugin
+  //
+  const VBscrollspyPlugin = {
+      install: installFactory({
+          components: VBscrollspyDirectives
+      })
+  };
+
   const DirectivePlugins = {
       VBmodalPlugin,
-      VBpopoverPlugin
+      VBpopoverPlugin,
+      VBscrollspyPlugin
   };
   const DirectivesPlugin = {
       install: installFactory({
