@@ -8,7 +8,7 @@ import { Dict, Primitive } from './types'
 
 export const assign = Object.assign || assignPolyfill
 export const getOwnPropertyNames = Object.getOwnPropertyNames
-export const keys = Object.keys
+export const keys = Object.keys as <T>(obj: T) => (keyof T & string)[]
 export const defineProperties = Object.defineProperties
 export const defineProperty = Object.defineProperty
 export const freeze = Object.freeze
@@ -36,7 +36,7 @@ export const isPlainObject = (obj: any): obj is Dict<any> =>
 
 // type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 // @link https://gist.github.com/bisubus/2da8af7e801ffd813fab7ac221aa7afc
-export const omit = <I extends Dict<any>, R>(obj: I, props: string[]): Omit<I, keyof R> =>
+export const omit = <I extends Dict<unknown>, R>(obj: I, props: (keyof I)[]): Omit<I, keyof R> =>
   keys(obj)
     .filter(key => props.indexOf(key) === -1)
     .reduce((result, key) => ({ ...result, [key]: obj[key] }), {}) as any

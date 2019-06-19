@@ -1,7 +1,8 @@
-import * as BLinkComponent from "fca9d7f0";
-import * as BNavbarNavComponent from "87e7097d";
-import * as BNavbarComponent from "87e7097d";
-import { BvPlugin } from "dafa5b20";
+import * as BLinkComponent from "803b0cbb";
+import * as BNavbarNavComponent from "5aae1bf9";
+import * as BNavbarComponent from "5aae1bf9";
+import * as VBToggleDirective from "ecb7ab0c";
+import { BvPlugin } from "d4da053b";
 import { BLinkConfig } from "../components/LinkPlugin";
 import { BNavbarNavConfig, BNavbarConfig } from "../components/NavbarPlugin";
 declare const LinkComponents: {
@@ -47,23 +48,37 @@ declare const VBscrollspyDirectives: {
     };
 };
 declare const VBscrollspyPlugin: BvPlugin;
+declare const VBtoggleDirectives: {
+    VBToggle: {
+        bind(el: VBToggleDirective.ToggleElement, binding: import("vue/types/options").DirectiveBinding, vnode: import("vue").VNode): void;
+        componentUpdated: (el: VBToggleDirective.ToggleElement, binding: import("vue/types/options").DirectiveBinding, vnode: import("vue").VNode) => void;
+        updated: (el: VBToggleDirective.ToggleElement, binding: import("vue/types/options").DirectiveBinding, vnode: import("vue").VNode) => void;
+        unbind(el: VBToggleDirective.ToggleElement, binding: import("vue/types/options").DirectiveBinding, vnode: import("vue").VNode): void;
+    };
+};
+declare const VBtogglePlugin: BvPlugin;
 declare const DirectivePlugins: {
     VBmodalPlugin: BvPlugin;
     VBpopoverPlugin: BvPlugin;
     VBscrollspyPlugin: BvPlugin;
+    VBtogglePlugin: BvPlugin;
+    VBtooltipPlugin: BvPlugin;
 };
 declare const DirectivesPlugin: BvPlugin;
-declare const BVConfigPlugin: import("dafa5b20").BvPlugin;
+declare const BVConfigPlugin: import("d4da053b").BvPlugin;
 export default BVConfigPlugin;
-export * from "fca9d7f0";
-export * from "87e7097d";
-export * from "87e7097d";
+export * from "803b0cbb";
+export * from "5aae1bf9";
+export * from "5aae1bf9";
 export * from "../components/LinkPlugin";
 export * from "../components/NavbarPlugin";
-export * from "ef478248";
-export * from "3e54c52b";
-export * from "e6721ef6";
+export * from "edb80088";
+export * from "88fded6a";
+export * from "a0e91275";
+export * from "ecb7ab0c";
 export * from "../directives/VBmodalPlugin";
 export * from "../directives/VBpopoverPlugin";
 export * from "../directives/VBscrollspyPlugin";
-export { LinkPlugin, LinkComponents, NavbarPlugin, NavbarComponents, ComponentsConfig, ComponentPlugins, ComponentsPlugin, VBmodalPlugin, VBmodalDirectives, VBpopoverPlugin, VBpopoverDirectives, VBscrollspyPlugin, VBscrollspyDirectives, DirectivePlugins, DirectivesPlugin };
+export * from "../directives/VBtogglePlugin";
+export * from "cfdbb5bc";
+export { LinkPlugin, LinkComponents, NavbarPlugin, NavbarComponents, ComponentsConfig, ComponentPlugins, ComponentsPlugin, VBmodalPlugin, VBmodalDirectives, VBpopoverPlugin, VBpopoverDirectives, VBscrollspyPlugin, VBscrollspyDirectives, VBtogglePlugin, VBtoggleDirectives, DirectivePlugins, DirectivesPlugin };

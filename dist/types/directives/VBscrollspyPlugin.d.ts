@@ -1,4 +1,4 @@
-import { BvPlugin } from "../chunks/dafa5b20";
+import { BvPlugin } from "../chunks/d4da053b";
 export declare const VBscrollspyDirectives: {
     VBScrollspy: {
         bind(el: HTMLElement, bindings: import("vue/types/options").DirectiveBinding, vnode: import("vue").VNode): void;
@@ -10,5 +10,5 @@ export declare const VBscrollspyDirectives: {
 };
 declare const VBscrollspyPlugin: BvPlugin;
 export default VBscrollspyPlugin;
-export * from "../chunks/e6721ef6";
+export * from "../chunks/a0e91275";
 export { VBscrollspyPlugin };

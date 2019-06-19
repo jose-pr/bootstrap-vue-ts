@@ -2,6 +2,7 @@ import commonjs from 'rollup-plugin-commonjs'
 import typescript from '@wessberg/rollup-plugin-ts'
 import nodeResolver from 'rollup-plugin-node-resolve'
 import inputs from './rollup.inputs'
+import clear from 'rollup-plugin-clear'
 
 let plugins = [commonjs(), nodeResolver(), typescript()]
 let globals = { vue: 'Vue' }
@@ -28,7 +29,7 @@ export default [
       }
     ],
     external: externals,
-    plugins: plugins
+    plugins: [...plugins, clear({ targets: [`${DIST_PATH}`] })]
   },
   {
     input: BROWSER_INDEX,

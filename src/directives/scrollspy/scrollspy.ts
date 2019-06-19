@@ -149,12 +149,12 @@ export class ScrollSpy extends Directive<
 
     // Process modifiers
     keys(bindings.modifiers).forEach(mod => {
-      if (/^\d+$/.test(mod)) {
+      if (/^\d+$/.test(mod as string)) {
         // Offset value
-        config.offset = parseInt(mod, 10)
-      } else if (/^(auto|position|offset)$/.test(mod)) {
+        config.offset = parseInt(mod as string, 10)
+      } else if (/^(auto|position|offset)$/.test(mod as string)) {
         // Offset method
-        config.method = mod
+        config.method = mod as string
       }
     })
 

@@ -1,8 +1,8 @@
-import BVConfigPlugin from "chunks/6ebfe45c";
-import { BvPlugin, setConfig } from "chunks/dafa5b20";
-import { ComponentsConfig } from "chunks/6ebfe45c";
-import { PluginFunction } from "chunks/5cd47ea1";
-import { BvComponentConfig } from "chunks/87e3debe";
+import BVConfigPlugin from "chunks/c6faf9c8";
+import { BvPlugin, setConfig } from "chunks/d4da053b";
+import { ComponentsConfig } from "chunks/c6faf9c8";
+import { PluginFunction } from "chunks/a6dd0dc4";
+import { BvComponentConfig } from "chunks/224339a2";
 declare const install: PluginFunction<global.BvConfigOptions>;
 declare global {
     type BvConfigOptions = {
@@ -15,6 +15,6 @@ export declare type BvConfigOptions = {
 export declare const BootstrapVue: BvPlugin;
 export default BootstrapVue;
 export { BVConfigPlugin as BVConfig };
-export * from "chunks/6ebfe45c";
-export * from "chunks/6ebfe45c";
+export * from "chunks/c6faf9c8";
+export * from "chunks/c6faf9c8";
 export { BVConfigPlugin, install, setConfig };

@@ -1,8 +1,7 @@
 import Popper, { PopperOptions, Placement, Boundary, Behavior, Data } from 'popper.js'
-import BvEvent from './bv-event'
-import noop from './noop'
-import { from as arrayFrom } from './array'
 import {
+  VueExtended as Vue,
+  from as arrayFrom,
   closest,
   select,
   isVisible,
@@ -15,14 +14,23 @@ import {
   removeAttr,
   getAttr,
   eventOn,
-  eventOff
-} from './dom'
-import { isFunction, isNull, isNumber, isString, isUndefined } from './inspect'
-import { Dict, Primitive } from './types'
-import Vue, { VueElement, VueExtended } from './vue'
-import { isObject } from './object'
-import { Directive } from './directive'
-import { warn } from './warn'
+  eventOff,
+  Dict,
+  Primitive,
+  isObject,
+  Directive,
+  warn,
+  noop,
+  isNumber,
+  BvEvent,
+  isFunction,
+  isUndefined,
+  isString,
+  isNull,
+  DirectiveBinding,
+  getComponentConfig,
+  keys
+} from '../../utils'
 
 export interface ToolTipConfig {
   animation: boolean
@@ -140,10 +148,20 @@ let NEXTID = 1
 /* istanbul ignore next */
 const generateId = (name: string): string => `__BV_${name}_${NEXTID++}__`
 
+// Key which we use to store tooltip object on element
+const BV_TOOLTIP = '__BV_ToolTip__'
+
+// Valid event triggers
+const validTriggers = {
+  focus: true,
+  hover: true,
+  click: true,
+  blur: true
+}
 /*
  * ToolTip class definition
  */
-class ToolTip extends Directive<ToolTipConfig> {
+export class ToolTip extends Directive<ToolTipConfig> {
   public $isEnabled?: boolean
   public $hoverState?: string
   public $activeTrigger?: Dict<boolean>
@@ -191,6 +209,105 @@ class ToolTip extends Directive<ToolTipConfig> {
       return false
     }
     return true
+  }
+
+  // Build a ToolTip config based on bindings (if any)
+  // Arguments and modifiers take precedence over passed value config object
+  /* istanbul ignore next: not easy to test */
+  static ParseBindingss<T = ToolTipConfig>(
+    bindings: DirectiveBinding
+  ): ToolTipConfig /* istanbul ignore next: not easy to test */ {
+    // We start out with a basic config
+    const NAME = 'BTooltip'
+    let config: Partial<ToolTipConfig> = {
+      delay: getComponentConfig(NAME, 'delay'),
+      boundary: String(getComponentConfig(NAME, 'boundary')) as Boundary,
+      boundaryPadding: parseInt(getComponentConfig(NAME, 'boundaryPadding'), 10) || 0
+    }
+
+    // Process bindings.value
+    if (isString(bindings.value)) {
+      // Value is tooltip content (html optionally supported)
+      config.title = bindings.value
+    } else if (isFunction(bindings.value)) {
+      // Title generator function
+      config.title = bindings.value
+    } else if (isObject(bindings.value)) {
+      // Value is config object, so merge
+      config = { ...config, ...bindings.value }
+    }
+
+    // If argument, assume element ID of container element
+    if (bindings.arg) {
+      // Element ID specified as arg
+      // We must prepend '#' to become a CSS selector
+      config.container = `#${bindings.arg}`
+    }
+
+    // Process modifiers
+    keys(bindings.modifiers).forEach(mod => {
+      if (/^html$/.test(mod)) {
+        // Title allows HTML
+        config.html = true
+      } else if (/^nofade$/.test(mod)) {
+        // No animation
+        config.animation = false
+      } else if (
+        /^(auto|top(left|right)?|bottom(left|right)?|left(top|bottom)?|right(top|bottom)?)$/.test(
+          mod
+        )
+      ) {
+        // Placement of tooltip
+        config.placement = mod as Placement
+      } else if (/^(window|viewport|scrollParent)$/.test(mod)) {
+        // Boundary of tooltip
+        config.boundary = mod as Boundary
+      } else if (/^d\d+$/.test(mod)) {
+        // Delay value
+        const delay = parseInt(mod.slice(1), 10) || 0
+        if (delay) {
+          config.delay = delay
+        }
+      } else if (/^o-?\d+$/.test(mod)) {
+        // Offset value, negative allowed
+        const offset = parseInt(mod.slice(1), 10) || 0
+        if (offset) {
+          config.offset = offset
+        }
+      }
+    })
+
+    // Special handling of event trigger modifiers trigger is
+    // a space separated list
+    const selectedTriggers: Dict<boolean> = {}
+
+    // Parse current config object trigger
+    let triggers = isString(config.trigger) ? config.trigger.trim().split(/\s+/) : []
+    triggers.forEach(trigger => {
+      if ((validTriggers as Dict<boolean>)[trigger]) {
+        selectedTriggers[trigger] = true
+      }
+    })
+
+    // Parse modifiers for triggers
+    keys(validTriggers).forEach(trigger => {
+      if (bindings.modifiers[trigger]) {
+        selectedTriggers[trigger] = true
+      }
+    })
+
+    // Sanitize triggers
+    config.trigger = keys(selectedTriggers).join(' ')
+    if (config.trigger === 'blur') {
+      // Blur by itself is useless, so convert it to 'focus'
+      config.trigger = 'focus'
+    }
+    if (!config.trigger) {
+      // Remove trigger config
+      delete config.trigger
+    }
+
+    return config as ToolTipConfig
   }
 
   // Update config
@@ -1055,4 +1172,9 @@ class ToolTip extends Directive<ToolTipConfig> {
   }
 }
 
-export default ToolTip
+/*
+ * Export our directive
+ */
+export const VBToolTip = ToolTip.GetBvDirective()
+
+export default VBToolTip

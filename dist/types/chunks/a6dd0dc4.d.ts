@@ -1,11 +1,8 @@
-import OurVue from "5cd47ea1";
-import BvEvent from "5cd47ea1";
+import OurVue from "a6dd0dc4";
 import OurVue from "vue";
-import Popper from "popper.js";
-import { Dict, Primitive, VueElement, VueExtended, DirectiveBinding, VNode, Directive } from "5cd47ea1";
+import { Dict, Primitive, VueElement, VueExtended, DirectiveBinding, VNode } from "a6dd0dc4";
 import { FunctionalComponentOptions, VueConstructor } from "vue";
 import { PropOptions, RecordPropsDefinition } from "vue/types/options";
-import { PopperOptions, Placement, Boundary, Behavior, Data } from "popper.js";
 declare type ElementClass = string | string[];
 declare type Primitive = string | boolean | number;
 declare type BooleanLike = string | boolean | number;
@@ -29,10 +26,7 @@ declare const assign: {
     (target: object, ...sources: any[]): any;
 };
 declare const getOwnPropertyNames: (o: any) => string[];
-declare const keys: {
-    (o: object): string[];
-    (o: {}): string[];
-};
+declare const keys: <T>(obj: T) => (keyof T & string)[];
 declare const defineProperties: (o: any, properties: PropertyDescriptorMap & ThisType<any>) => any;
 declare const defineProperty: (o: any, p: string | number | symbol, attributes: PropertyDescriptor & ThisType<any>) => any;
 declare const freeze: {
@@ -61,7 +55,7 @@ declare const isObject: (obj: any) => obj is Dict<any>;
  * for plain JavaScript objects.
  */
 declare const isPlainObject: (obj: any) => obj is Dict<any>;
-declare const omit: <I extends Dict<any>, R>(obj: I, props: string[]) => Pick<I, Exclude<keyof I, keyof R>>;
+declare const omit: <I extends Dict<unknown>, R>(obj: I, props: (keyof I)[]) => Pick<I, Exclude<keyof I, keyof R>>;
 declare const readonlyDescriptor: () => PropertyDescriptor;
 /**
  * Deep-freezes and object, making it immutable / read-only.
@@ -293,6 +287,12 @@ declare abstract class Directive<ConfigType> {
         unbind(el: HTMLElement): void;
     };
 }
+/**
+ * Check if two values are loosely equal - that is,
+ * if they are plain objects, do they have the same shape?
+ * Returns boolean true or false
+ */
+declare const looseEqual: (a: unknown, b: unknown) => boolean;
 declare const noop: () => void;
 declare const TestNever1: () => string;
 declare const TestNever2: () => string;
@@ -338,48 +338,28 @@ declare const bindTargets: (vnode: VNode, binding: DirectiveBinding, listenTypes
     vnode: VNode;
 }) => void) => string[];
 declare const unbindTargets: (vnode: VNode, binding: DirectiveBinding, listenTypes: Dict<boolean>) => void;
-interface ToolTipConfig {
-    animation: boolean;
-    template: string;
-    trigger: string;
-    title: string;
-    delay: number | {
-        show: number;
-        hide: number;
-    };
-    html: boolean;
-    placement: Placement;
-    offset: number;
-    arrowPadding: number | string;
-    container: boolean | string;
-    fallbackPlacement: Behavior;
-    callbacks: Dict<Function>;
-    boundary: HTMLElement | Boundary;
-    boundaryPadding: number;
-    content: string;
-}
 export * from 'vue';
 export * from 'vue/types/options';
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export * from "5cd47ea1";
-export { ElementClass, Primitive, BooleanLike, NumberLike, Dict, from, isArray, arrayIncludes, concat, assign, getOwnPropertyNames, keys, defineProperties, defineProperty, freeze, getOwnPropertyDescriptor, getOwnPropertySymbols, getPrototypeOf, create, isFrozen, is, isObject, isPlainObject, omit, readonlyDescriptor, deepFreeze, hasOwnProperty, BvEvent, cloneDeep, hasWindowSupport, hasDocumentSupport, hasNavigatorSupport, hasPromiseSupport, hasMutationObserverSupport, isBrowser, userAgent, isJSDOM, isIE, hasPassiveEventSupport, hasTouchSupport, hasPointerEventSupport, hasIntersectionObserverSupport, getEnv, getNoWarn, warn, warnNotClient, warnNoPromiseSupport, warnNoMutationObserverSupport, functionalComponent, checkMultipleVue, PropsDef, VueElement, VueExtended, BvInstance, get, BV_CONFIG_PROP_NAME, memoize, getConfig, getConfigValue, getComponentConfig, getBreakpoints, getBreakpointsCached, getBreakpointsUp, getBreakpointsUpCached, getBreakpointsDown, getBreakpointsDownCached, toType, toRawType, toRawTypeLC, isUndefined, isNull, isFunction, isBoolean, isString, isNumber, isPrimitive, isDate, isRegExp, isPromise, isVueElement, isElement, matchesEl, matches, closestEl, requestAF, MutationObs, parseEventOptions, eventOn, eventOff, contains, reflow, selectAll, select, closest, getById, addClass, removeClass, hasClass, setAttr, removeAttr, getAttr, hasAttr, getBCR, getCS, offset, position, isVisible, isDisabled, Directive, noop, TestNever1, TestNever2, TestNever3, observeDom, TestPartial1, TestPartial2, TestPartial3, toString, stringifyQueryObj, parseQuery, isRouterLink, computeTag, computeRel, computeHref, bindTargets, unbindTargets, getTargets, ToolTipConfig };
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export * from "a6dd0dc4";
+export { ElementClass, Primitive, BooleanLike, NumberLike, Dict, from, isArray, arrayIncludes, concat, assign, getOwnPropertyNames, keys, defineProperties, defineProperty, freeze, getOwnPropertyDescriptor, getOwnPropertySymbols, getPrototypeOf, create, isFrozen, is, isObject, isPlainObject, omit, readonlyDescriptor, deepFreeze, hasOwnProperty, BvEvent, cloneDeep, hasWindowSupport, hasDocumentSupport, hasNavigatorSupport, hasPromiseSupport, hasMutationObserverSupport, isBrowser, userAgent, isJSDOM, isIE, hasPassiveEventSupport, hasTouchSupport, hasPointerEventSupport, hasIntersectionObserverSupport, getEnv, getNoWarn, warn, warnNotClient, warnNoPromiseSupport, warnNoMutationObserverSupport, functionalComponent, checkMultipleVue, PropsDef, VueElement, VueExtended, BvInstance, get, BV_CONFIG_PROP_NAME, memoize, getConfig, getConfigValue, getComponentConfig, getBreakpoints, getBreakpointsCached, getBreakpointsUp, getBreakpointsUpCached, getBreakpointsDown, getBreakpointsDownCached, toType, toRawType, toRawTypeLC, isUndefined, isNull, isFunction, isBoolean, isString, isNumber, isPrimitive, isDate, isRegExp, isPromise, isVueElement, isElement, matchesEl, matches, closestEl, requestAF, MutationObs, parseEventOptions, eventOn, eventOff, contains, reflow, selectAll, select, closest, getById, addClass, removeClass, hasClass, setAttr, removeAttr, getAttr, hasAttr, getBCR, getCS, offset, position, isVisible, isDisabled, Directive, looseEqual, noop, TestNever1, TestNever2, TestNever3, observeDom, TestPartial1, TestPartial2, TestPartial3, toString, stringifyQueryObj, parseQuery, isRouterLink, computeTag, computeRel, computeHref, bindTargets, unbindTargets, getTargets };

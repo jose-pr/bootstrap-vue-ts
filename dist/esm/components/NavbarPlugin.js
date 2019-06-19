@@ -1,9 +1,9 @@
-import '../chunks/5cd47ea1.js';
+import '../chunks/a6dd0dc4.js';
 import 'vue';
-import '../chunks/87e3debe.js';
-import { i as installFactory } from '../chunks/dafa5b20.js';
-import { B as BNavbarNav, a as BNavbar } from '../chunks/87e7097d.js';
-export { c as BNavbar, b as BNavbarNav } from '../chunks/87e7097d.js';
+import '../chunks/224339a2.js';
+import { i as installFactory } from '../chunks/d4da053b.js';
+import { B as BNavbarNav, a as BNavbar } from '../chunks/5aae1bf9.js';
+export { c as BNavbar, b as BNavbarNav } from '../chunks/5aae1bf9.js';
 
 const NavbarComponents = {
     BNavbarNav: BNavbarNav,

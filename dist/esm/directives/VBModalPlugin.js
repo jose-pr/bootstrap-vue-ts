@@ -1,9 +1,9 @@
-import '../chunks/5cd47ea1.js';
+import '../chunks/a6dd0dc4.js';
 import 'vue';
-import '../chunks/87e3debe.js';
-import { i as installFactory } from '../chunks/dafa5b20.js';
-import { V as VBModal } from '../chunks/ef478248.js';
-export { a as VBModal } from '../chunks/ef478248.js';
+import '../chunks/224339a2.js';
+import { i as installFactory } from '../chunks/d4da053b.js';
+import { V as VBModal } from '../chunks/edb80088.js';
+export { a as VBModal } from '../chunks/edb80088.js';
 
 const VBmodalDirectives = {
     VBModal: VBModal

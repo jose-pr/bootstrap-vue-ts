@@ -1,5 +1,5 @@
-import ToolTip from "5cd47ea1";
-import { ToolTipConfig, DirectiveBinding } from "5cd47ea1";
+import { ToolTip, ToolTipConfig } from "cfdbb5bc";
+import { DirectiveBinding } from "a6dd0dc4";
 export declare type Triggers = 'focus' | 'hover' | 'click' | 'blur';
 export declare class PopOver extends ToolTip {
     static readonly Default: ToolTipConfig;

@@ -1,4 +1,4 @@
-import { VueExtended, Directive, DirectiveBinding } from "5cd47ea1";
+import { VueExtended, Directive, DirectiveBinding } from "a6dd0dc4";
 export interface ScrollSpyConfig {
     element: string | HTMLElement | VueExtended;
     offset: number;

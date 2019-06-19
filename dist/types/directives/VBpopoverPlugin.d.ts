@@ -1,4 +1,4 @@
-import { BvPlugin } from "../chunks/dafa5b20";
+import { BvPlugin } from "../chunks/d4da053b";
 export declare const VBpopoverDirectives: {
     VBPopover: {
         bind(el: HTMLElement, bindings: import("vue/types/options").DirectiveBinding, vnode: import("vue").VNode): void;
@@ -10,5 +10,5 @@ export declare const VBpopoverDirectives: {
 };
 declare const VBpopoverPlugin: BvPlugin;
 export default VBpopoverPlugin;
-export * from "../chunks/3e54c52b";
+export * from "../chunks/88fded6a";
 export { VBpopoverPlugin };

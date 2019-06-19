@@ -181,8 +181,36 @@ interface ComponentsConfig {
     BNavbar?: BNavbarConfig;
 }
 declare const VBmodalPlugin: BvPlugin;
+declare const VBtooltipPlugin: BvPlugin;
 declare const VBpopoverPlugin: BvPlugin;
 declare const VBscrollspyPlugin: BvPlugin;
+interface ToggleElement extends HTMLElement {
+    __BV_toggle__: (id: string, state: boolean) => void;
+    __BV_toggle_STATE__: boolean;
+    __BV_toggle_CONTROLS__: string;
+    __BV_toggle_TARGETS__: unknown[];
+}
+declare const VBToggle: {
+    bind(el: ToggleElement, binding: DirectiveBinding, vnode: VNode): void;
+    componentUpdated: (el: ToggleElement, binding: DirectiveBinding, vnode: VNode) => void;
+    updated: (el: ToggleElement, binding: DirectiveBinding, vnode: VNode) => void;
+    unbind(el: ToggleElement, binding: DirectiveBinding, vnode: VNode): void;
+};
+declare module VBToggleDirective {
+    interface ToggleElement extends HTMLElement {
+        __BV_toggle__: (id: string, state: boolean) => void;
+        __BV_toggle_STATE__: boolean;
+        __BV_toggle_CONTROLS__: string;
+        __BV_toggle_TARGETS__: unknown[];
+    }
+    declare const VBToggle: {
+        bind(el: ToggleElement, binding: DirectiveBinding, vnode: VNode): void;
+        componentUpdated: (el: ToggleElement, binding: DirectiveBinding, vnode: VNode) => void;
+        updated: (el: ToggleElement, binding: DirectiveBinding, vnode: VNode) => void;
+        unbind(el: ToggleElement, binding: DirectiveBinding, vnode: VNode): void;
+    };
+}
+declare const VBtogglePlugin: BvPlugin;
 declare const BVConfigPlugin: BvPlugin;
 declare const install: PluginFunction<global.BvConfigOptions>;
 declare global {
@@ -198,4 +226,4 @@ export default BootstrapVue;
 export * from 'vue';
 export * from 'vue/types/options';
 export { BVConfigPlugin as BVConfig };
-export { BvEvent, bindTargets, unbindTargets, getTargets, LinkPlugin, NavbarPlugin, VBmodalPlugin, VBpopoverPlugin, VBscrollspyPlugin, BVConfigPlugin, install, setConfig };
+export { BvEvent, bindTargets, unbindTargets, getTargets, LinkPlugin, NavbarPlugin, VBmodalPlugin, VBtooltipPlugin, VBpopoverPlugin, VBscrollspyPlugin, VBtogglePlugin, BVConfigPlugin, install, setConfig };

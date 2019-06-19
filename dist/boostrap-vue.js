@@ -1514,6 +1514,7 @@
   const isFunction = (val) => toType(val) === 'function';
   const isString = (val) => toType(val) === 'string';
   const isNumber = (val) => toType(val) === 'number';
+  const isDate = (val) => val instanceof Date;
   const isVueElement = (val) => val.__vue__ && val instanceof HTMLElement;
 
   // --- Constants ---
@@ -1940,6 +1941,63 @@
       }
   }
 
+  // Assumes both a and b are arrays!
+  // Handles when arrays are "sparse" (array.every(...) doesn't handle sparse)
+  const compareArrays = (a, b) => {
+      if (a.length !== b.length) {
+          return false;
+      }
+      let equal = true;
+      for (let i = 0; equal && i < a.length; i++) {
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+          equal = looseEqual(a[i], b[i]);
+      }
+      return equal;
+  };
+  /**
+   * Check if two values are loosely equal - that is,
+   * if they are plain objects, do they have the same shape?
+   * Returns boolean true or false
+   */
+  const looseEqual = (a, b) => {
+      if (a === b) {
+          return true;
+      }
+      let aValidType = isDate(a);
+      let bValidType = isDate(b);
+      if (aValidType || bValidType) {
+          return aValidType && bValidType ? a.getTime() === b.getTime() : false;
+      }
+      aValidType = isArray$3(a);
+      bValidType = isArray$3(b);
+      if (aValidType || bValidType) {
+          return aValidType && bValidType ? compareArrays(a, b) : false;
+      }
+      aValidType = isObject$1(a);
+      bValidType = isObject$1(b);
+      if (aValidType || bValidType) {
+          /* istanbul ignore if: this if will probably never be called */
+          if (!aValidType || !bValidType) {
+              return false;
+          }
+          const aKeysCount = keys$1(a).length;
+          const bKeysCount = keys$1(b).length;
+          if (aKeysCount !== bKeysCount) {
+              return false;
+          }
+          for (const key in a) {
+              const aHasKey = a.hasOwnProperty(key);
+              const bHasKey = b.hasOwnProperty(key);
+              if ((aHasKey && !bHasKey) ||
+                  (!aHasKey && bHasKey) ||
+                  !looseEqual(a[key], b[key])) {
+                  return false;
+              }
+          }
+      }
+      return String(a) === String(b);
+  };
+
   const noop = () => { };
 
   /**
@@ -2152,6 +2210,478 @@
               }
           }
       });
+  };
+
+  
+
+  // --- Constants ---
+  // Config manager class
+  class BvConfig {
+      constructor() {
+          // TODO: pre-populate with default config values (needs updated tests)
+          // this.$_config = cloneDeep(DEFAULTS)
+          // eslint-disable-next-line @typescript-eslint/camelcase
+          this.$_config = {};
+          // eslint-disable-next-line @typescript-eslint/camelcase
+          this.$_cachedBreakpoints = null;
+      }
+      static get Defaults() {
+          return DEFAULTS;
+      }
+      get defaults() {
+          return DEFAULTS;
+      }
+      // Returns the defaults
+      getDefaults() {
+          return this.defaults;
+      }
+      // Method to merge in user config parameters
+      setConfig(config = {}) {
+          if (!isPlainObject(config)) {
+              /* istanbul ignore next */
+              return;
+          }
+          const configKeys = getOwnPropertyNames(config);
+          for (let cmpName of configKeys) {
+              /* istanbul ignore next */
+              if (!hasOwnProperty$1(DEFAULTS, cmpName)) {
+                  warn(`config: unknown config property "${cmpName}"`);
+                  return;
+              }
+              const cmpConfig = config[cmpName];
+              if (cmpName === 'breakpoints') {
+                  // Special case for breakpoints
+                  const breakpoints = config.breakpoints;
+                  /* istanbul ignore if */
+                  if (!isArray$3(breakpoints) ||
+                      breakpoints.length < 2 ||
+                      breakpoints.some(b => !isString(b) || b.length === 0)) {
+                      warn('config: "breakpoints" must be an array of at least 2 breakpoint names');
+                  }
+                  else {
+                      this.$_config.breakpoints = cloneDeep(breakpoints);
+                  }
+              }
+              else if (isPlainObject(cmpConfig)) {
+                  // Component prop defaults
+                  let config = cmpConfig;
+                  const props = getOwnPropertyNames(cmpConfig);
+                  for (let prop of props) {
+                      /* istanbul ignore if */
+                      if (!hasOwnProperty$1(DEFAULTS[cmpName], prop)) {
+                          warn(`config: unknown config property "${cmpName}.{$prop}"`);
+                      }
+                      else {
+                          // TODO: If we pre-populate the config with defaults, we can skip this line
+                          this.$_config[cmpName] = this.$_config[cmpName] || {};
+                          if (!isUndefined(cmpConfig[prop])) {
+                              this.$_config[cmpName][prop] = cloneDeep(config[prop]);
+                          }
+                      }
+                  }
+              }
+          }
+      }
+      // Clear the config. For testing purposes only
+      resetConfig() {
+          // eslint-disable-next-line @typescript-eslint/camelcase
+          this.$_config = {};
+      }
+      // Returns a deep copy of the user config
+      getConfig() {
+          return cloneDeep(this.$_config);
+      }
+      getConfigValue(key) {
+          // First we try the user config, and if key not found we fall back to default value
+          // NOTE: If we deep clone DEFAULTS into config, then we can skip the fallback for get
+          return cloneDeep(get$1(this.$_config, key, get$1(DEFAULTS, key)));
+      }
+  }
+  // Method for applying a global config
+  const setConfig = (config = {}, Vue = OurVue__default) => {
+      // Ensure we have a $bvConfig Object on the Vue prototype.
+      // We set on Vue and OurVue just in case consumer has not set an alias of `vue`.
+      Vue.prototype[BV_CONFIG_PROP_NAME] = OurVue__default.prototype[BV_CONFIG_PROP_NAME] =
+          Vue.prototype[BV_CONFIG_PROP_NAME] || OurVue__default.prototype[BV_CONFIG_PROP_NAME] || new BvConfig();
+      // Apply the config values
+      Vue.prototype[BV_CONFIG_PROP_NAME].setConfig(config);
+  };
+
+  /**
+   * Load a group of plugins.
+   * @param {object} Vue
+   * @param {object} Plugin definitions
+   */
+  const registerPlugins = (Vue, plugins = {}) => {
+      for (let plugin in plugins) {
+          if (plugin && plugins[plugin]) {
+              Vue.use(plugins[plugin]);
+          }
+      }
+  };
+  /**
+   * Load a component.
+   * @param {object} Vue
+   * @param {string} Component name
+   * @param {object} Component definition
+   */
+  const registerComponent = (Vue, name, def) => {
+      if (Vue && name && def) {
+          Vue.component(name, def);
+      }
+  };
+  /**
+   * Load a group of components.
+   * @param {object} Vue
+   * @param {object} Object of component definitions
+   */
+  const registerComponents = (Vue, components = {}) => {
+      for (let component in components) {
+          registerComponent(Vue, component, components[component]);
+      }
+  };
+  /**
+   * Load a directive.
+   * @param {object} Vue
+   * @param {string} Directive name
+   * @param {object} Directive definition
+   */
+  const registerDirective = (Vue, name, def) => {
+      if (Vue && name && def) {
+          // Ensure that any leading V is removed from the
+          // name, as Vue adds it automatically
+          Vue.directive(name.replace(/^VB/, 'B'), def);
+      }
+  };
+  /**
+   * Load a group of directives.
+   * @param {object} Vue
+   * @param {object} Object of directive definitions
+   */
+  const registerDirectives = (Vue, directives = {}) => {
+      for (let directive in directives) {
+          registerDirective(Vue, directive, directives[directive]);
+      }
+  };
+  /**
+   * Plugin install factory function.
+   * @param {object} { components, directives }
+   * @returns {function} plugin install function
+   */
+  const installFactory = ({ components, directives, plugins }) => {
+      const install = (Vue, config = {}) => {
+          if (install.installed) {
+              /* istanbul ignore next */
+              return;
+          }
+          install.installed = true;
+          checkMultipleVue(Vue);
+          setConfig(config, Vue);
+          registerComponents(Vue, components);
+          registerDirectives(Vue, directives);
+          registerPlugins(Vue, plugins);
+      };
+      install.installed = false;
+      return install;
+  };
+  /**
+   * Install plugin if window.Vue available
+   * @param {object} Plugin definition
+   */
+  const vueUse = (VuePlugin) => {
+      /* istanbul ignore next */
+      if (hasWindowSupport && window.Vue) {
+          window.Vue.use(VuePlugin);
+      }
+  };
+
+  var e=function(){return (e=Object.assign||function(e){for(var t,r=1,s=arguments.length;r<s;r++)for(var a in t=arguments[r])Object.prototype.hasOwnProperty.call(t,a)&&(e[a]=t[a]);return e}).apply(this,arguments)},t={kebab:/-(\w)/g,styleProp:/:(.*)/,styleList:/;(?![^(]*\))/g};function r(e,t){return t?t.toUpperCase():""}function s(e){for(var s,a={},c=0,o=e.split(t.styleList);c<o.length;c++){var n=o[c].split(t.styleProp),i=n[0],l=n[1];(i=i.trim())&&("string"==typeof l&&(l=l.trim()),a[(s=i,s.replace(t.kebab,r))]=l);}return a}function a(){for(var t,r,a={},c=arguments.length;c--;)for(var o=0,n=Object.keys(arguments[c]);o<n.length;o++)switch(t=n[o]){case"class":case"style":case"directives":if(Array.isArray(a[t])||(a[t]=[]),"style"===t){var i=void 0;i=Array.isArray(arguments[c].style)?arguments[c].style:[arguments[c].style];for(var l=0;l<i.length;l++){var y=i[l];"string"==typeof y&&(i[l]=s(y));}arguments[c].style=i;}a[t]=a[t].concat(arguments[c][t]);break;case"staticClass":if(!arguments[c][t])break;void 0===a[t]&&(a[t]=""),a[t]&&(a[t]+=" "),a[t]+=arguments[c][t].trim();break;case"on":case"nativeOn":a[t]||(a[t]={});for(var p=0,f=Object.keys(arguments[c][t]||{});p<f.length;p++)r=f[p],a[t][r]?a[t][r]=[].concat(a[t][r],arguments[c][t][r]):a[t][r]=arguments[c][t][r];break;case"attrs":case"props":case"domProps":case"scopedSlots":case"staticStyle":case"hook":case"transition":a[t]||(a[t]={}),a[t]=e({},arguments[c][t],a[t]);break;case"slot":case"key":case"ref":case"tag":case"show":case"keepAlive":default:a[t]||(a[t]=arguments[c][t]);}return a}
+
+  const propsFactory = () => {
+      return {
+          href: {
+              type: String,
+              default: null
+          },
+          rel: {
+              type: String,
+              default: null
+          },
+          target: {
+              type: String,
+              default: '_self'
+          },
+          active: {
+              type: Boolean,
+              default: false
+          },
+          disabled: {
+              type: Boolean,
+              default: false
+          },
+          // router-link specific props
+          to: {
+              type: [String, Object],
+              default: null
+          },
+          append: {
+              type: Boolean,
+              default: false
+          },
+          replace: {
+              type: Boolean,
+              default: false
+          },
+          event: {
+              type: [String, Array],
+              default: 'click'
+          },
+          activeClass: {
+              type: String
+              // default: undefined
+          },
+          exact: {
+              type: Boolean,
+              default: false
+          },
+          exactActiveClass: {
+              type: String
+              // default: undefined
+          },
+          routerTag: {
+              type: String,
+              default: 'a'
+          },
+          // nuxt-link specific prop(s)
+          noPrefetch: {
+              type: Boolean,
+              default: false
+          }
+      };
+  };
+  const clickHandlerFactory = ({ disabled, tag, href, suppliedHandler, parent }) => {
+      return function onClick(evt) {
+          if (disabled && evt instanceof Event) {
+              // Stop event from bubbling up.
+              evt.stopPropagation();
+              // Kill the event loop attached to this specific EventTarget.
+              // Needed to prevent vue-router for doing its thing
+              evt.stopImmediatePropagation();
+          }
+          else {
+              if (isRouterLink(tag) && isVueElement(evt.target)) {
+                  // Router links do not emit instance 'click' events, so we
+                  // add in an $emit('click', evt) on it's vue instance
+                  /* istanbul ignore next: difficult to test, but we know it works */
+                  evt.target.__vue__.$emit('click', evt);
+              }
+              // Call the suppliedHandler(s), if any provided
+              let args = Array.from(arguments);
+              concat(suppliedHandler)
+                  .filter(h => isFunction(h))
+                  .forEach(handler => {
+                  handler(...args);
+              });
+              parent.$root.$emit('clicked::link', evt);
+          }
+          if ((!isRouterLink(tag) && href === '#') || disabled) {
+              // Stop scroll-to-top behavior or navigation on regular links
+              // when href is just '#'
+              evt.preventDefault();
+          }
+      };
+  };
+  // @vue/component
+  var link = functionalComponent({
+      props: propsFactory(),
+      render(h, { props, data, parent, children }) {
+          const tag = computeTag(props, parent);
+          const rel = computeRel(props);
+          const href = computeHref(props, tag);
+          const eventType = isRouterLink(tag) ? 'nativeOn' : 'on';
+          const suppliedHandler = (data[eventType] || {}).click;
+          const handlers = {
+              click: clickHandlerFactory({ tag, href, disabled: props.disabled, suppliedHandler, parent })
+          };
+          const componentData = a(data, {
+              class: { active: props.active, disabled: props.disabled },
+              attrs: {
+                  rel,
+                  target: props.target,
+                  tabindex: props.disabled ? '-1' : data.attrs ? data.attrs.tabindex : null,
+                  'aria-disabled': props.disabled ? 'true' : null
+              },
+              props: Object.assign({}, props, { tag: props.routerTag })
+          });
+          // If href attribute exists on router-link (even undefined or null) it fails working on SSR
+          // So we explicitly add it here if needed (i.e. if computeHref() is truthy)
+          if (href) {
+              componentData.attrs.href = href;
+          }
+          else {
+              // Ensure the prop HREF does not exist for router links
+              delete componentData.props.href;
+          }
+          // We want to overwrite any click handler since our callback
+          // will invoke the user supplied handler if !props.disabled
+          componentData[eventType] = Object.assign({}, (componentData[eventType] || {}), handlers);
+          return h(tag, componentData, children);
+      }
+  });
+
+  const LinkComponents = {
+      BLink: link
+  };
+  //
+  //Plugin
+  //
+  const LinkPlugin = {
+      install: installFactory({
+          components: LinkComponents
+      })
+  };
+
+  const props = {
+      tag: {
+          type: String,
+          default: 'nav'
+      },
+      type: {
+          type: String,
+          default: 'light'
+      },
+      variant: {
+          type: String,
+          default: 'dark'
+      },
+      toggleable: {
+          type: [Boolean, String],
+          default: false
+      },
+      fixed: {
+          type: String
+      },
+      sticky: {
+          type: Boolean,
+          default: false
+      },
+      print: {
+          type: Boolean,
+          default: false
+      }
+  };
+  const BNavbarNav = functionalComponent({
+      props: props,
+      methods: {
+          Test: () => '123'
+      }
+  });
+
+  const props$1 = {
+      tag: {
+          type: String,
+          default: 'nav'
+      },
+      type: {
+          type: String,
+          default: 'light'
+      },
+      variant: {
+          type: String,
+          default: 'dark'
+      },
+      toggleable: {
+          type: [Boolean, String],
+          default: false
+      },
+      fixed: {
+          type: String
+      },
+      sticky: {
+          type: Boolean,
+          default: false
+      },
+      print: {
+          type: Boolean,
+          default: false
+      }
+  };
+  const BNavbar = functionalComponent({
+      props: props$1,
+      methods: {
+          Test: () => '123'
+      }
+  });
+
+  const NavbarComponents = {
+      BNavbarNav: BNavbarNav,
+      BNavbar: BNavbar
+  };
+  //
+  //Plugin
+  //
+  const NavbarPlugin = {
+      install: installFactory({
+          components: NavbarComponents
+      })
+  };
+
+  const ComponentPlugins = {
+      LinkPlugin,
+      NavbarPlugin
+  };
+  const ComponentsPlugin = {
+      install: installFactory({
+          components: ComponentPlugins
+      })
+  };
+
+  /* eslint-disable @typescript-eslint/no-non-null-assertion */
+  // Target listen types
+  const listenTypes = { click: true };
+  // Emitted show event for modal
+  const EVENT_SHOW = 'bv::show::modal';
+  const setRole = (el, binding, vnode) => {
+      if (el.tagName !== 'BUTTON') {
+          setAttr(el, 'role', 'button');
+      }
+  };
+  /*
+   * Export our directive
+   */
+  const VBModal = {
+      // eslint-disable-next-line no-shadow-restricted-names
+      bind(el, binding, vnode) {
+          bindTargets(vnode, binding, listenTypes, ({ targets, vnode }) => {
+              targets.forEach((target) => {
+                  vnode.context.$root.$emit(EVENT_SHOW, target, vnode.elm);
+              });
+          });
+          // If element is not a button, we add `role="button"` for accessibility
+          setRole(el);
+      },
+      // @ts-ignore
+      updated: setRole,
+      componentUpdated: setRole,
+      unbind(el, binding, vnode) {
+          unbindTargets(vnode, binding, listenTypes);
+          // If element is not a button, we add `role="button"` for accessibility
+          if (el.tagName !== 'BUTTON') {
+              removeAttr(el, 'role');
+          }
+      }
+  };
+
+  const VBmodalDirectives = {
+      VBModal: VBModal
+  };
+  //
+  //Plugin
+  //
+  const VBmodalPlugin = {
+      install: installFactory({
+          components: VBmodalDirectives
+      })
   };
 
   /**!
@@ -4836,6 +5366,13 @@
   };
   // Options for Native Event Listeners (since we never call preventDefault)
   const EvtOpts = { passive: true, capture: false };
+  // Valid event triggers
+  const validTriggers = {
+      focus: true,
+      hover: true,
+      click: true,
+      blur: true
+  };
   /*
    * ToolTip class definition
    */
@@ -4864,11 +5401,102 @@
       static ValidateApply() {
           if (!Popper) {
               /* istanbul ignore next */
-              warn('v-b-popover: Popper.js is required for PopOvers to work');
+              OurVue.warn('v-b-popover: Popper.js is required for PopOvers to work');
               /* istanbul ignore next */
               return false;
           }
           return true;
+      }
+      // Build a ToolTip config based on bindings (if any)
+      // Arguments and modifiers take precedence over passed value config object
+      /* istanbul ignore next: not easy to test */
+      static ParseBindingss(bindings) {
+          // We start out with a basic config
+          const NAME = 'BTooltip';
+          let config = {
+              delay: getComponentConfig(NAME, 'delay'),
+              boundary: String(getComponentConfig(NAME, 'boundary')),
+              boundaryPadding: parseInt(getComponentConfig(NAME, 'boundaryPadding'), 10) || 0
+          };
+          // Process bindings.value
+          if (isString(bindings.value)) {
+              // Value is tooltip content (html optionally supported)
+              config.title = bindings.value;
+          }
+          else if (isFunction(bindings.value)) {
+              // Title generator function
+              config.title = bindings.value;
+          }
+          else if (isObject$1(bindings.value)) {
+              // Value is config object, so merge
+              config = Object.assign({}, config, bindings.value);
+          }
+          // If argument, assume element ID of container element
+          if (bindings.arg) {
+              // Element ID specified as arg
+              // We must prepend '#' to become a CSS selector
+              config.container = `#${bindings.arg}`;
+          }
+          // Process modifiers
+          keys$1(bindings.modifiers).forEach(mod => {
+              if (/^html$/.test(mod)) {
+                  // Title allows HTML
+                  config.html = true;
+              }
+              else if (/^nofade$/.test(mod)) {
+                  // No animation
+                  config.animation = false;
+              }
+              else if (/^(auto|top(left|right)?|bottom(left|right)?|left(top|bottom)?|right(top|bottom)?)$/.test(mod)) {
+                  // Placement of tooltip
+                  config.placement = mod;
+              }
+              else if (/^(window|viewport|scrollParent)$/.test(mod)) {
+                  // Boundary of tooltip
+                  config.boundary = mod;
+              }
+              else if (/^d\d+$/.test(mod)) {
+                  // Delay value
+                  const delay = parseInt(mod.slice(1), 10) || 0;
+                  if (delay) {
+                      config.delay = delay;
+                  }
+              }
+              else if (/^o-?\d+$/.test(mod)) {
+                  // Offset value, negative allowed
+                  const offset = parseInt(mod.slice(1), 10) || 0;
+                  if (offset) {
+                      config.offset = offset;
+                  }
+              }
+          });
+          // Special handling of event trigger modifiers trigger is
+          // a space separated list
+          const selectedTriggers = {};
+          // Parse current config object trigger
+          let triggers = isString(config.trigger) ? config.trigger.trim().split(/\s+/) : [];
+          triggers.forEach(trigger => {
+              if (validTriggers[trigger]) {
+                  selectedTriggers[trigger] = true;
+              }
+          });
+          // Parse modifiers for triggers
+          keys$1(validTriggers).forEach(trigger => {
+              if (bindings.modifiers[trigger]) {
+                  selectedTriggers[trigger] = true;
+              }
+          });
+          // Sanitize triggers
+          config.trigger = keys$1(selectedTriggers).join(' ');
+          if (config.trigger === 'blur') {
+              // Blur by itself is useless, so convert it to 'focus'
+              config.trigger = 'focus';
+          }
+          if (!config.trigger) {
+              // Remove trigger config
+              delete config.trigger;
+          }
+          return config;
       }
       // Update config
       processConfig(config) {
@@ -5667,476 +6295,20 @@
           config.animation = initConfigAnimation;
       }
   }
-
-  
-
-  // --- Constants ---
-  // Config manager class
-  class BvConfig {
-      constructor() {
-          // TODO: pre-populate with default config values (needs updated tests)
-          // this.$_config = cloneDeep(DEFAULTS)
-          // eslint-disable-next-line @typescript-eslint/camelcase
-          this.$_config = {};
-          // eslint-disable-next-line @typescript-eslint/camelcase
-          this.$_cachedBreakpoints = null;
-      }
-      static get Defaults() {
-          return DEFAULTS;
-      }
-      get defaults() {
-          return DEFAULTS;
-      }
-      // Returns the defaults
-      getDefaults() {
-          return this.defaults;
-      }
-      // Method to merge in user config parameters
-      setConfig(config = {}) {
-          if (!isPlainObject(config)) {
-              /* istanbul ignore next */
-              return;
-          }
-          const configKeys = getOwnPropertyNames(config);
-          for (let cmpName of configKeys) {
-              /* istanbul ignore next */
-              if (!hasOwnProperty$1(DEFAULTS, cmpName)) {
-                  warn(`config: unknown config property "${cmpName}"`);
-                  return;
-              }
-              const cmpConfig = config[cmpName];
-              if (cmpName === 'breakpoints') {
-                  // Special case for breakpoints
-                  const breakpoints = config.breakpoints;
-                  /* istanbul ignore if */
-                  if (!isArray$3(breakpoints) ||
-                      breakpoints.length < 2 ||
-                      breakpoints.some(b => !isString(b) || b.length === 0)) {
-                      warn('config: "breakpoints" must be an array of at least 2 breakpoint names');
-                  }
-                  else {
-                      this.$_config.breakpoints = cloneDeep(breakpoints);
-                  }
-              }
-              else if (isPlainObject(cmpConfig)) {
-                  // Component prop defaults
-                  let config = cmpConfig;
-                  const props = getOwnPropertyNames(cmpConfig);
-                  for (let prop of props) {
-                      /* istanbul ignore if */
-                      if (!hasOwnProperty$1(DEFAULTS[cmpName], prop)) {
-                          warn(`config: unknown config property "${cmpName}.{$prop}"`);
-                      }
-                      else {
-                          // TODO: If we pre-populate the config with defaults, we can skip this line
-                          this.$_config[cmpName] = this.$_config[cmpName] || {};
-                          if (!isUndefined(cmpConfig[prop])) {
-                              this.$_config[cmpName][prop] = cloneDeep(config[prop]);
-                          }
-                      }
-                  }
-              }
-          }
-      }
-      // Clear the config. For testing purposes only
-      resetConfig() {
-          // eslint-disable-next-line @typescript-eslint/camelcase
-          this.$_config = {};
-      }
-      // Returns a deep copy of the user config
-      getConfig() {
-          return cloneDeep(this.$_config);
-      }
-      getConfigValue(key) {
-          // First we try the user config, and if key not found we fall back to default value
-          // NOTE: If we deep clone DEFAULTS into config, then we can skip the fallback for get
-          return cloneDeep(get$1(this.$_config, key, get$1(DEFAULTS, key)));
-      }
-  }
-  // Method for applying a global config
-  const setConfig = (config = {}, Vue = OurVue__default) => {
-      // Ensure we have a $bvConfig Object on the Vue prototype.
-      // We set on Vue and OurVue just in case consumer has not set an alias of `vue`.
-      Vue.prototype[BV_CONFIG_PROP_NAME] = OurVue__default.prototype[BV_CONFIG_PROP_NAME] =
-          Vue.prototype[BV_CONFIG_PROP_NAME] || OurVue__default.prototype[BV_CONFIG_PROP_NAME] || new BvConfig();
-      // Apply the config values
-      Vue.prototype[BV_CONFIG_PROP_NAME].setConfig(config);
-  };
-
-  /**
-   * Load a group of plugins.
-   * @param {object} Vue
-   * @param {object} Plugin definitions
-   */
-  const registerPlugins = (Vue, plugins = {}) => {
-      for (let plugin in plugins) {
-          if (plugin && plugins[plugin]) {
-              Vue.use(plugins[plugin]);
-          }
-      }
-  };
-  /**
-   * Load a component.
-   * @param {object} Vue
-   * @param {string} Component name
-   * @param {object} Component definition
-   */
-  const registerComponent = (Vue, name, def) => {
-      if (Vue && name && def) {
-          Vue.component(name, def);
-      }
-  };
-  /**
-   * Load a group of components.
-   * @param {object} Vue
-   * @param {object} Object of component definitions
-   */
-  const registerComponents = (Vue, components = {}) => {
-      for (let component in components) {
-          registerComponent(Vue, component, components[component]);
-      }
-  };
-  /**
-   * Load a directive.
-   * @param {object} Vue
-   * @param {string} Directive name
-   * @param {object} Directive definition
-   */
-  const registerDirective = (Vue, name, def) => {
-      if (Vue && name && def) {
-          // Ensure that any leading V is removed from the
-          // name, as Vue adds it automatically
-          Vue.directive(name.replace(/^VB/, 'B'), def);
-      }
-  };
-  /**
-   * Load a group of directives.
-   * @param {object} Vue
-   * @param {object} Object of directive definitions
-   */
-  const registerDirectives = (Vue, directives = {}) => {
-      for (let directive in directives) {
-          registerDirective(Vue, directive, directives[directive]);
-      }
-  };
-  /**
-   * Plugin install factory function.
-   * @param {object} { components, directives }
-   * @returns {function} plugin install function
-   */
-  const installFactory = ({ components, directives, plugins }) => {
-      const install = (Vue, config = {}) => {
-          if (install.installed) {
-              /* istanbul ignore next */
-              return;
-          }
-          install.installed = true;
-          checkMultipleVue(Vue);
-          setConfig(config, Vue);
-          registerComponents(Vue, components);
-          registerDirectives(Vue, directives);
-          registerPlugins(Vue, plugins);
-      };
-      install.installed = false;
-      return install;
-  };
-  /**
-   * Install plugin if window.Vue available
-   * @param {object} Plugin definition
-   */
-  const vueUse = (VuePlugin) => {
-      /* istanbul ignore next */
-      if (hasWindowSupport && window.Vue) {
-          window.Vue.use(VuePlugin);
-      }
-  };
-
-  var e=function(){return (e=Object.assign||function(e){for(var t,r=1,s=arguments.length;r<s;r++)for(var a in t=arguments[r])Object.prototype.hasOwnProperty.call(t,a)&&(e[a]=t[a]);return e}).apply(this,arguments)},t={kebab:/-(\w)/g,styleProp:/:(.*)/,styleList:/;(?![^(]*\))/g};function r(e,t){return t?t.toUpperCase():""}function s(e){for(var s,a={},c=0,o=e.split(t.styleList);c<o.length;c++){var n=o[c].split(t.styleProp),i=n[0],l=n[1];(i=i.trim())&&("string"==typeof l&&(l=l.trim()),a[(s=i,s.replace(t.kebab,r))]=l);}return a}function a(){for(var t,r,a={},c=arguments.length;c--;)for(var o=0,n=Object.keys(arguments[c]);o<n.length;o++)switch(t=n[o]){case"class":case"style":case"directives":if(Array.isArray(a[t])||(a[t]=[]),"style"===t){var i=void 0;i=Array.isArray(arguments[c].style)?arguments[c].style:[arguments[c].style];for(var l=0;l<i.length;l++){var y=i[l];"string"==typeof y&&(i[l]=s(y));}arguments[c].style=i;}a[t]=a[t].concat(arguments[c][t]);break;case"staticClass":if(!arguments[c][t])break;void 0===a[t]&&(a[t]=""),a[t]&&(a[t]+=" "),a[t]+=arguments[c][t].trim();break;case"on":case"nativeOn":a[t]||(a[t]={});for(var p=0,f=Object.keys(arguments[c][t]||{});p<f.length;p++)r=f[p],a[t][r]?a[t][r]=[].concat(a[t][r],arguments[c][t][r]):a[t][r]=arguments[c][t][r];break;case"attrs":case"props":case"domProps":case"scopedSlots":case"staticStyle":case"hook":case"transition":a[t]||(a[t]={}),a[t]=e({},arguments[c][t],a[t]);break;case"slot":case"key":case"ref":case"tag":case"show":case"keepAlive":default:a[t]||(a[t]=arguments[c][t]);}return a}
-
-  const propsFactory = () => {
-      return {
-          href: {
-              type: String,
-              default: null
-          },
-          rel: {
-              type: String,
-              default: null
-          },
-          target: {
-              type: String,
-              default: '_self'
-          },
-          active: {
-              type: Boolean,
-              default: false
-          },
-          disabled: {
-              type: Boolean,
-              default: false
-          },
-          // router-link specific props
-          to: {
-              type: [String, Object],
-              default: null
-          },
-          append: {
-              type: Boolean,
-              default: false
-          },
-          replace: {
-              type: Boolean,
-              default: false
-          },
-          event: {
-              type: [String, Array],
-              default: 'click'
-          },
-          activeClass: {
-              type: String
-              // default: undefined
-          },
-          exact: {
-              type: Boolean,
-              default: false
-          },
-          exactActiveClass: {
-              type: String
-              // default: undefined
-          },
-          routerTag: {
-              type: String,
-              default: 'a'
-          },
-          // nuxt-link specific prop(s)
-          noPrefetch: {
-              type: Boolean,
-              default: false
-          }
-      };
-  };
-  const clickHandlerFactory = ({ disabled, tag, href, suppliedHandler, parent }) => {
-      return function onClick(evt) {
-          if (disabled && evt instanceof Event) {
-              // Stop event from bubbling up.
-              evt.stopPropagation();
-              // Kill the event loop attached to this specific EventTarget.
-              // Needed to prevent vue-router for doing its thing
-              evt.stopImmediatePropagation();
-          }
-          else {
-              if (isRouterLink(tag) && isVueElement(evt.target)) {
-                  // Router links do not emit instance 'click' events, so we
-                  // add in an $emit('click', evt) on it's vue instance
-                  /* istanbul ignore next: difficult to test, but we know it works */
-                  evt.target.__vue__.$emit('click', evt);
-              }
-              // Call the suppliedHandler(s), if any provided
-              let args = Array.from(arguments);
-              concat(suppliedHandler)
-                  .filter(h => isFunction(h))
-                  .forEach(handler => {
-                  handler(...args);
-              });
-              parent.$root.$emit('clicked::link', evt);
-          }
-          if ((!isRouterLink(tag) && href === '#') || disabled) {
-              // Stop scroll-to-top behavior or navigation on regular links
-              // when href is just '#'
-              evt.preventDefault();
-          }
-      };
-  };
-  // @vue/component
-  var link = functionalComponent({
-      props: propsFactory(),
-      render(h, { props, data, parent, children }) {
-          const tag = computeTag(props, parent);
-          const rel = computeRel(props);
-          const href = computeHref(props, tag);
-          const eventType = isRouterLink(tag) ? 'nativeOn' : 'on';
-          const suppliedHandler = (data[eventType] || {}).click;
-          const handlers = {
-              click: clickHandlerFactory({ tag, href, disabled: props.disabled, suppliedHandler, parent })
-          };
-          const componentData = a(data, {
-              class: { active: props.active, disabled: props.disabled },
-              attrs: {
-                  rel,
-                  target: props.target,
-                  tabindex: props.disabled ? '-1' : data.attrs ? data.attrs.tabindex : null,
-                  'aria-disabled': props.disabled ? 'true' : null
-              },
-              props: Object.assign({}, props, { tag: props.routerTag })
-          });
-          // If href attribute exists on router-link (even undefined or null) it fails working on SSR
-          // So we explicitly add it here if needed (i.e. if computeHref() is truthy)
-          if (href) {
-              componentData.attrs.href = href;
-          }
-          else {
-              // Ensure the prop HREF does not exist for router links
-              delete componentData.props.href;
-          }
-          // We want to overwrite any click handler since our callback
-          // will invoke the user supplied handler if !props.disabled
-          componentData[eventType] = Object.assign({}, (componentData[eventType] || {}), handlers);
-          return h(tag, componentData, children);
-      }
-  });
-
-  const LinkComponents = {
-      BLink: link
-  };
-  //
-  //Plugin
-  //
-  const LinkPlugin = {
-      install: installFactory({
-          components: LinkComponents
-      })
-  };
-
-  const props = {
-      tag: {
-          type: String,
-          default: 'nav'
-      },
-      type: {
-          type: String,
-          default: 'light'
-      },
-      variant: {
-          type: String,
-          default: 'dark'
-      },
-      toggleable: {
-          type: [Boolean, String],
-          default: false
-      },
-      fixed: {
-          type: String
-      },
-      sticky: {
-          type: Boolean,
-          default: false
-      },
-      print: {
-          type: Boolean,
-          default: false
-      }
-  };
-  const BNavbarNav = functionalComponent({
-      props: props,
-      methods: {
-          Test: () => '123'
-      }
-  });
-
-  const props$1 = {
-      tag: {
-          type: String,
-          default: 'nav'
-      },
-      type: {
-          type: String,
-          default: 'light'
-      },
-      variant: {
-          type: String,
-          default: 'dark'
-      },
-      toggleable: {
-          type: [Boolean, String],
-          default: false
-      },
-      fixed: {
-          type: String
-      },
-      sticky: {
-          type: Boolean,
-          default: false
-      },
-      print: {
-          type: Boolean,
-          default: false
-      }
-  };
-  const BNavbar = functionalComponent({
-      props: props$1,
-      methods: {
-          Test: () => '123'
-      }
-  });
-
-  const NavbarComponents = {
-      BNavbarNav: BNavbarNav,
-      BNavbar: BNavbar
-  };
-  //
-  //Plugin
-  //
-  const NavbarPlugin = {
-      install: installFactory({
-          components: NavbarComponents
-      })
-  };
-
-  const ComponentPlugins = {
-      LinkPlugin,
-      NavbarPlugin
-  };
-  const ComponentsPlugin = {
-      install: installFactory({
-          components: ComponentPlugins
-      })
-  };
-
-  /* eslint-disable @typescript-eslint/no-non-null-assertion */
-  // Target listen types
-  const listenTypes = { click: true };
-  // Emitted show event for modal
-  const EVENT_SHOW = 'bv::show::modal';
-  const setRole = (el, binding, vnode) => {
-      if (el.tagName !== 'BUTTON') {
-          setAttr(el, 'role', 'button');
-      }
-  };
   /*
    * Export our directive
    */
-  const VBModal = {
-      // eslint-disable-next-line no-shadow-restricted-names
-      bind(el, binding, vnode) {
-          bindTargets(vnode, binding, listenTypes, ({ targets, vnode }) => {
-              targets.forEach((target) => {
-                  vnode.context.$root.$emit(EVENT_SHOW, target, vnode.elm);
-              });
-          });
-          // If element is not a button, we add `role="button"` for accessibility
-          setRole(el);
-      },
-      // @ts-ignore
-      updated: setRole,
-      componentUpdated: setRole,
-      unbind(el, binding, vnode) {
-          unbindTargets(vnode, binding, listenTypes);
-          // If element is not a button, we add `role="button"` for accessibility
-          if (el.tagName !== 'BUTTON') {
-              removeAttr(el, 'role');
-          }
-      }
-  };
+  const VBToolTip = ToolTip.GetBvDirective();
 
-  const VBmodalDirectives = {
-      VBModal: VBModal
+  const VBtooltipDirectives = {
+      VBTooltip: VBToolTip
   };
   //
   //Plugin
   //
-  const VBmodalPlugin = {
+  const VBtooltipPlugin = {
       install: installFactory({
-          components: VBmodalDirectives
+          components: VBtooltipDirectives
       })
   };
 
@@ -6156,7 +6328,7 @@
       CONTENT: '.popover-body'
   };
   // Valid event triggers
-  const validTriggers = {
+  const validTriggers$1 = {
       focus: true,
       hover: true,
       click: true,
@@ -6239,12 +6411,12 @@
           // Parse current config object trigger
           let triggers = isString(config.trigger) ? config.trigger.trim().split(/\s+/) : [];
           triggers.forEach((trigger) => {
-              if (validTriggers[trigger]) {
+              if (validTriggers$1[trigger]) {
                   selectedTriggers[trigger] = true;
               }
           });
           // Parse modifiers for triggers
-          keys$1(validTriggers).forEach((trigger) => {
+          keys$1(validTriggers$1).forEach((trigger) => {
               if (bindings.modifiers[trigger]) {
                   selectedTriggers[trigger] = true;
               }
@@ -6764,10 +6936,152 @@
       })
   };
 
+  // Target listen types
+  const listenTypes$1 = { click: true };
+  // Property key for handler storage
+  const BV_TOGGLE = '__BV_toggle__';
+  const BV_TOGGLE_STATE = '__BV_toggle_STATE__';
+  const BV_TOGGLE_CONTROLS = '__BV_toggle_CONTROLS__';
+  const BV_TOGGLE_TARGETS = '__BV_toggle_TARGETS__';
+  // Emitted control event for collapse (emitted to collapse)
+  const EVENT_TOGGLE = 'bv::toggle::collapse';
+  // Listen to event for toggle state update (emitted by collapse)
+  const EVENT_STATE = 'bv::collapse::state';
+  // Private event emitted on $root to ensure the toggle state is always synced.
+  // Gets emitted even if the state of b-collapse has not changed.
+  // This event is NOT to be documented as people should not be using it.
+  const EVENT_STATE_SYNC = 'bv::collapse::sync::state';
+  // Private event we send to collapse to request state update sync event
+  const EVENT_STATE_REQUEST = 'bv::request::collapse::state';
+  // Reset and remove a property from the provided element
+  const resetProp = (el, prop) => {
+      el[prop] = undefined;
+      delete el[prop];
+  };
+  // Handle targets update
+  const handleTargets = ({ targets, vnode }) => {
+      targets.forEach(target => {
+          if (vnode.context)
+              vnode.context.$root.$emit(EVENT_TOGGLE, target);
+      });
+  };
+  // Handle directive updates
+  /* istanbul ignore next: not easy to test */
+  const handleUpdate = (el, binding, vnode) => {
+      if (!isBrowser) {
+          return;
+      }
+      if (!looseEqual(getTargets(binding), el[BV_TOGGLE_TARGETS])) {
+          // Targets have changed, so update accordingly
+          unbindTargets(vnode, binding, listenTypes$1);
+          const targets = bindTargets(vnode, binding, listenTypes$1, handleTargets);
+          // Update targets array to element
+          el[BV_TOGGLE_TARGETS] = targets;
+          // Add aria attributes to element
+          el[BV_TOGGLE_CONTROLS] = targets.join(' ');
+          // ensure aria-controls is up to date
+          setAttr(el, 'aria-controls', el[BV_TOGGLE_CONTROLS]);
+          // Request a state update from targets so that we can ensure
+          // expanded state is correct
+          targets.forEach(target => {
+              if (vnode.context)
+                  vnode.context.$root.$emit(EVENT_STATE_REQUEST, target);
+          });
+      }
+      // Ensure the collapse class and aria-* attributes persist
+      // after element is updated (either by parent re-rendering
+      // or changes to this element or it's contents
+      if (el[BV_TOGGLE_STATE] === true) {
+          addClass(el, 'collapsed');
+          setAttr(el, 'aria-expanded', 'true');
+      }
+      else if (el[BV_TOGGLE_STATE] === false) {
+          removeClass(el, 'collapsed');
+          setAttr(el, 'aria-expanded', 'false');
+      }
+      setAttr(el, 'aria-controls', el[BV_TOGGLE_CONTROLS]);
+  };
+  /*
+   * Export our directive
+   */
+  const VBToggle = {
+      bind(el, binding, vnode) {
+          const targets = bindTargets(vnode, binding, listenTypes$1, handleTargets);
+          if (isBrowser && vnode.context && targets.length > 0) {
+              // Add targets array to element
+              el[BV_TOGGLE_TARGETS] = targets;
+              // Add aria attributes to element
+              el[BV_TOGGLE_CONTROLS] = targets.join(' ');
+              // State is initially collapsed until we receive a state event
+              el[BV_TOGGLE_STATE] = false;
+              setAttr(el, 'aria-controls', el[BV_TOGGLE_CONTROLS]);
+              setAttr(el, 'aria-expanded', 'false');
+              // If element is not a button, we add `role="button"` for accessibility
+              if (el.tagName !== 'BUTTON') {
+                  setAttr(el, 'role', 'button');
+              }
+              // Toggle state handler, stored on element
+              el[BV_TOGGLE] = function toggleDirectiveHandler(id, state) {
+                  const targets = el[BV_TOGGLE_TARGETS] || [];
+                  if (targets.indexOf(id) !== -1) {
+                      // Set aria-expanded state
+                      setAttr(el, 'aria-expanded', state ? 'true' : 'false');
+                      // Set/Clear 'collapsed' class state
+                      el[BV_TOGGLE_STATE] = state;
+                      if (state) {
+                          removeClass(el, 'collapsed');
+                      }
+                      else {
+                          addClass(el, 'collapsed');
+                      }
+                  }
+              };
+              // Listen for toggle state changes (public)
+              vnode.context.$root.$on(EVENT_STATE, el[BV_TOGGLE]);
+              // Listen for toggle state sync (private)
+              vnode.context.$root.$on(EVENT_STATE_SYNC, el[BV_TOGGLE]);
+          }
+      },
+      componentUpdated: handleUpdate,
+      updated: handleUpdate,
+      unbind(el, binding, vnode) {
+          unbindTargets(vnode, binding, listenTypes$1);
+          // Remove our $root listener
+          if (el[BV_TOGGLE] && vnode.context) {
+              vnode.context.$root.$off(EVENT_STATE, el[BV_TOGGLE]);
+              vnode.context.$root.$off(EVENT_STATE_SYNC, el[BV_TOGGLE]);
+          }
+          // Reset custom  props
+          resetProp(el, BV_TOGGLE);
+          resetProp(el, BV_TOGGLE_STATE);
+          resetProp(el, BV_TOGGLE_CONTROLS);
+          resetProp(el, BV_TOGGLE_TARGETS);
+          // Reset classes/attrs
+          removeClass(el, 'collapsed');
+          removeAttr(el, 'aria-expanded');
+          removeAttr(el, 'aria-controls');
+          removeAttr(el, 'role');
+      }
+  };
+
+  const VBtoggleDirectives = {
+      VBToggle: VBToggle
+  };
+  //
+  //Plugin
+  //
+  const VBtogglePlugin = {
+      install: installFactory({
+          components: VBtoggleDirectives
+      })
+  };
+
   const DirectivePlugins = {
       VBmodalPlugin,
       VBpopoverPlugin,
-      VBscrollspyPlugin
+      VBscrollspyPlugin,
+      VBtogglePlugin,
+      VBtooltipPlugin
   };
   const DirectivesPlugin = {
       install: installFactory({

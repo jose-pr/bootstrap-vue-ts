@@ -1,4 +1,4 @@
-import ToolTip, { ToolTipConfig } from '../../utils/tooltip'
+import { ToolTip, ToolTipConfig } from '../tooltip/'
 import { select, addClass, removeClass, getAttr } from '../../utils/dom'
 import { isFunction, isNull, isString } from '../../utils/inspect'
 import { isObject, keys } from '../../utils/object'
@@ -82,7 +82,6 @@ export class PopOver extends ToolTip {
       // We must prepend '#' to become a CSS selector
       config.container = `#${bindings.arg}`
     }
-
     // Process modifiers
     keys(bindings.modifiers).forEach((mod): void => {
       if (/^html$/.test(mod)) {

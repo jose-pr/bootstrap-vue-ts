@@ -9,6 +9,10 @@ const inputs = {
   'directives/VBpopoverPlugin': './src/directives/popover/index.ts',
   'directives/popover/VBPopover': 'src/directives/popover/popover.ts',
   'directives/VBscrollspyPlugin': './src/directives/scrollspy/index.ts',
-  'directives/scrollspy/VBScrollspy': 'src/directives/scrollspy/scrollspy.ts'
+  'directives/scrollspy/VBScrollspy': 'src/directives/scrollspy/scrollspy.ts',
+  'directives/VBtogglePlugin': './src/directives/toggle/index.ts',
+  'directives/toggle/VBToggle': 'src/directives/toggle/toggle.ts',
+  'directives/VBtooltipPlugin': './src/directives/tooltip/index.ts',
+  'directives/tooltip/VBTooltip': 'src/directives/tooltip/tooltip.ts'
 }
 export default inputs
