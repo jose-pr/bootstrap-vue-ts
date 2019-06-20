@@ -10,15 +10,15 @@ import { BvComponentConfig } from './core/BvComponent'
 const install = installFactory({ plugins: { ComponentsPlugin, DirectivesPlugin } })
 
 declare global {
-  type BvConfigOptions = { breakpoints?: string[] } & ComponentsConfig & BvComponentConfig
+  export interface BvConfigOptions extends ComponentsConfig, BvComponentConfig {}
 }
-
-export type BvConfigOptions = { breakpoints?: string[] } & ComponentsConfig & BvComponentConfig
-
+export type ConfigOptions = BvConfigOptions
+//export type BvConfigOptions = { breakpoints?: string[] } & ComponentsConfig & BvComponentConfig
 export const BootstrapVue: BvPlugin = {
   install: install as PluginFunction<BvConfigOptions>,
   setConfig: setConfig
 }
+
 export default BootstrapVue // Named exports for BvConfigPlugin and BootstrapVue
 export {
   // BV Config Plugin

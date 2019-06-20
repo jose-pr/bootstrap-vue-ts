@@ -1,4 +1,4 @@
-export type ElementClass = string | string[]
+export type ElementClass = string | string[] | Dict<boolean>
 export type Primitive = string | boolean | number
 export type BooleanLike = string | boolean | number
 export type NumberLike = string | number

@@ -12,6 +12,7 @@ import { TSWritter, CallFunction } from './tsWrite'
 
 const SRC_PATH = 'src'
 const UTILS_PATH = `${SRC_PATH}/utils`
+const MIXINS_PATH = `${SRC_PATH}/mixins`
 
 const ROOT_PATH = '..'
 
@@ -144,6 +145,7 @@ async function ProcessPlugins(types: pluginType[]) {
       if (stats.isDirectory()) {
         plugins.push(module)
         await createIndexForPlugin(module)
+        await ProcessHelpers(module.fullpath)
       }
     }
     index.ImportFromModule(`../core/BvPlugin`, [`installFactory`, 'BvPlugin'])
@@ -195,22 +197,30 @@ async function ProcessPlugins(types: pluginType[]) {
 
   return allplugins
 }
-
-async function ProcessUtils() {
-  console.log('Process Utils')
-  let filenames = await lsDir(UTILS_PATH)
-  let index = new TSWritter()
-  index.Comment('Export all utils')
-
+async function ProcessHelpers(path: string) {
+  let filenames = await lsDir(path)
   for (let filename of filenames) {
-    let module = getModuleFrom(filename, filename, UTILS_PATH)
+    let stats = await getStats(path)
+    //All directories under components are plugins
+    if ((stats.isDirectory() && filename == 'utils') || filename == 'mixins') {
+      await BasicIndex(path + '/' + filename)
+    }
+  }
+}
+async function BasicIndex(path: string) {
+  console.log(`Process index for ${path}`)
+  let filenames = await lsDir(path)
+  let index = new TSWritter()
+  for (let filename of filenames) {
+    let module = getModuleFrom(filename, filename, path)
     let stats = await getStats(module.fullpath)
     if (stats.isFile && !filename.endsWith('index.ts')) {
       index.ExportAllFromModules(`./${filename.split('.')[0]}`)
     }
   }
-  await index.Write(getWritter(`${UTILS_PATH}/index.ts`))
+  await index.Write(getWritter(`${path}/index.ts`))
 }
+
 async function RollupInputs(plugins: plugin[]) {
   let rollupInputs = new TSWritter()
   rollupInputs.DeclareObject(
@@ -249,6 +259,6 @@ async function run() {
 
   let plugins = await ProcessPlugins([componentPluginType, directivePluginType])
   await RollupInputs(plugins)
-  ProcessUtils()
+  ProcessHelpers(SRC_PATH)
 }
 run()

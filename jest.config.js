@@ -3,11 +3,11 @@ module.exports = {
   testEnvironment: 'node',
   transformIgnorePatterns: ['/node_modules/'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@(.*)$': '<rootDir>/src/$1'
   },
   globals: {
     'ts-jest': {
-      tsConfig: './tests/unit/tsconfig.json'
+      tsConfig: './tsconfig.spec.json'
     }
   }
 }

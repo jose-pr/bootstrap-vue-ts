@@ -3,6 +3,7 @@ import cloneDeep from './clone-deep'
 import get from './get'
 import DEFAULTS, { BV_CONFIG_PROP_NAME } from '../defaults'
 import memoize from './memoize'
+import { Dict } from './types'
 // --- Constants ---
 
 const VueProto = Vue.prototype
@@ -12,6 +13,11 @@ const VueProto = Vue.prototype
 // value, to prevent mutation of the user config object.
 
 // Get the current user config. For testing purposes only
+
+export interface BvConfigOptions extends Dict<unknown> {
+  breakpoints?: string[]
+}
+
 export const getConfig = (): BvConfigOptions => {
   return VueProto[BV_CONFIG_PROP_NAME] ? VueProto[BV_CONFIG_PROP_NAME].getConfig() : {}
 }

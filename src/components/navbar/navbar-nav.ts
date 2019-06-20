@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import { isString, BooleanLike, functionalComponent, PropsDef } from '../../utils'
+import { isString, BooleanLike, functionalComponent, PropsDef } from '@utils'
 
 export interface BNavbarNavConfig {
   tag: string

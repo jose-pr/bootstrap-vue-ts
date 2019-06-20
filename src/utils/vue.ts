@@ -12,11 +12,11 @@ import { isJSDOM } from './env'
 // TODO:
 //   Conditionally import Vue if no global Vue
 //
-const Vue = OurVue
-export default OurVue
+export const Vue = OurVue as VueConstructor<Vue>
+export { Component, Watch, Prop, Mixins } from 'vue-property-decorator'
 export * from 'vue'
 export * from 'vue/types/options'
-
+export * from 'vue/types/vnode'
 export function functionalComponent<Props>(
   options: Omit<FunctionalComponentOptions<Props, RecordPropsDefinition<Props>>, 'functional'> & {
     methods?: Dict<Function>
@@ -55,9 +55,11 @@ export type PropsDef<T> = {
 export interface VueElement extends HTMLElement {
   __vue__: OurVue
 }
-export interface VueExtended extends OurVue {
+export interface Vue extends OurVue {
+  $el: HTMLElement
   $route?: unknown
   _isVue: boolean
+  _uid: string
 }
 
 export interface BvInstance {

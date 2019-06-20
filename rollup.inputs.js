@@ -4,6 +4,8 @@ const inputs = {
   'components/NavbarPlugin': './src/components/navbar/index.ts',
   'components/navbar/BNavbarNav': 'src/components/navbar/navbar-nav.ts',
   'components/navbar/BNavbar': 'src/components/navbar/navbar.ts',
+  'components/TablePlugin': './src/components/table/index.ts',
+  'components/table/BTableLite': 'src/components/table/table-lite.ts',
   'directives/VBmodalPlugin': './src/directives/modal/index.ts',
   'directives/modal/VBModal': 'src/directives/modal/modal.ts',
   'directives/VBpopoverPlugin': './src/directives/popover/index.ts',
