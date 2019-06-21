@@ -4,9 +4,14 @@ import { VueExtended as Vue } from '@utils'
 import { IdMixin, NormalizeSlotMixin } from '@mixins'
 
 // Local Mixins
-import { ItemsMixin, CaptionMixin, ColgroupMixin, THeadMixin, TFootMixin } from './mixins'
-
-import tbodyMixin from './helpers/mixin-tbody'
+import {
+  ItemsMixin,
+  CaptionMixin,
+  ColgroupMixin,
+  THeadMixin,
+  TFootMixin,
+  TBodyMixin
+} from './mixins'
 
 // b-table-lite component definition
 // @vue/component

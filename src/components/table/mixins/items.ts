@@ -1,10 +1,10 @@
 import { Component, Prop, Watch } from 'vue-property-decorator'
 import { Vue, looseEqual, isArray, isNull, isUndefined } from '@utils'
 import normalizeFields from '../utils/normalize-fields'
-import { TableFieldAcceptedFormat, TableField } from '../utils/field'
+import { TableFieldAcceptedFormat, TableField, TableItem } from '../utils/typings'
 
 @Component({})
-export class ItemsMixin<T = unknown> extends Vue {
+export class ItemsMixin<T extends TableItem = TableItem> extends Vue {
   @Prop({
     default() {
       return []

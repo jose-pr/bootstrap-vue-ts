@@ -1,6 +1,6 @@
 import { startCase, isArray, isFunction, isObject, isString, keys, Dict } from '@utils'
 import { IGNORED_FIELD_KEYS } from './constants'
-import { TableField, Formatter, TableFieldAcceptedFormat } from './field'
+import { TableField, Formatter, TableFieldAcceptedFormat } from './typings'
 
 // Private function to massage field entry into common object format
 const processField = (key: string, value: unknown): TableField | undefined => {

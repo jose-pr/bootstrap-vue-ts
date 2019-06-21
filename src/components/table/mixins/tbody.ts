@@ -1,5 +1,9 @@
 import tbodyRowMixin from './mixin-tbody-row'
-
+import { Component, Prop, Watch, Mixins } from 'vue-property-decorator'
+import ItemsMixin from './items'
+import { NormalizeSlotMixin } from '@mixins'
+@Component({})
+export class TBodyMixin extends Mixins() {}
 export default {
   mixins: [tbodyRowMixin],
   props: {

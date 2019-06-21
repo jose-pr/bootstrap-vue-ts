@@ -57,6 +57,7 @@ export interface VueElement extends HTMLElement {
 }
 export interface Vue extends OurVue {
   $el: HTMLElement
+  $parent: Vue
   $route?: unknown
   _isVue: boolean
   _uid: string
